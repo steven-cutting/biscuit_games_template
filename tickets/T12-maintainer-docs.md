@@ -211,7 +211,9 @@ the tree changes.
       Actions, or the deploy job fails with `Failed to create deployment (status: 404)`;
       (2) required checks `frontend`, `documents` and `stories` on `main`, not
       up-to-date, no review, force-push and deletion refused; (3) `CHROMATIC_PROJECT_TOKEN`
-      as a repository secret, optional; (4) private vulnerability reporting on; (5) the
+      as a repository secret, optional; (4) private vulnerability reporting on where
+      GitHub offers it, which is public repositories; on a private one the endpoint
+      answers `404` and `SECURITY.md`'s fallback paragraph is the route instead; (5) the
       package's grant of read access to the repository, a setting on the package and not
       on either repository (its "Manage Actions access" setting; no REST endpoint is
       known), without which every workflow that installs fails. Then the script: if step

@@ -72,7 +72,7 @@ CONVENTIONS.md §10 lists. `just test` is green in the template repository.
 | --- | --- | --- | --- |
 | `template/README.md.jinja` | S | `P README.md` | Rewritten to the shape below; `game_name`, `description`, `pages_url`, `base_path` |
 | `template/CHANGELOG.md.jinja` | S | `P CHANGELOG.md` lines 1-8 and 400 | Keep a Changelog skeleton; `repository_url` |
-| `template/SECURITY.md` | S | `P SECURITY.md` | P minus lines 28-32 |
+| `template/SECURITY.md` | S | `P SECURITY.md` | P minus lines 28-32, plus the private-reporting fallback paragraph |
 | `template/docs/project/purpose-and-scope.md.jinja` | S | `P docs/project/purpose-and-scope.md` (shape) | Rewritten from `game_name` and `description` |
 | `template/docs/project/terminology.md.jinja` | S | `P docs/project/terminology.md` | Repository table kept and edited; game table two rows (tier B) |
 | `template/docs/project/repository-map.md` | M | `P docs/project/repository-map.md` | Tree and table trimmed to what ships |
@@ -249,6 +249,20 @@ two game-specific out-of-scope bullets (reading the answer; decoding a custom-ga
 whose third line is the decision link). Lines 33-34 stay. Lines 44-46 remain true of the
 rendered workflows (`packages: read` on the install job, write scopes only in
 `pages.yml`); leave them. Not a `.jinja` file: it says "this repository".
+
+One paragraph is added, the file's only addition to P. P's reporting section names
+GitHub's private vulnerability reporting and nothing else, and GitHub offers that form on
+public repositories: the endpoint answers `404 Not Found` on a private one
+(`tickets/C03-repository-bootstrap.md` lines 64-66). A game may be rendered into a
+private repository, and `SECURITY.md` is a seed, so a later template fix would never
+reach it. Insert this after P line 7 (the "do not open a public issue" sentence) and
+before the "Include what you did" paragraph, wrapped as P wraps:
+
+````markdown
+GitHub offers that form on public repositories. While this repository is private, only
+people its owner has added can see it at all, so report to the owner directly instead —
+the account named in this repository's address. Do not open an issue.
+````
 
 ### 3. The two seed handbook pages
 
@@ -729,6 +743,8 @@ Run the Verification commands below, then commit on the ticket branch, set this 
 - [ ] In a render with the default answers, `scripts/validate_docs.py` exits 0 and
       markdownlint reports no error over `docs/`, `README.md`, `SECURITY.md` and
       `CHANGELOG.md`.
+- [ ] `template/SECURITY.md` carries the private-reporting fallback paragraph, so the
+      policy names a route that exists whether the repository is public or private.
 - [ ] The only rendered lines carrying `poodl` (any case) among this ticket's files are the
       two hub URLs in `docs/project/platform.md`; no other forbidden token appears.
 - [ ] `docs/project/platform.md` states no literal package version.

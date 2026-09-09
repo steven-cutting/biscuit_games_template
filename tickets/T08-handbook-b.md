@@ -366,7 +366,22 @@ P `docs/explanation/security-model.md`, 95 lines. Edits:
   Whatever this game holds in memory or in device storage, a player with developer
   tools can read. There is no opponent and no leaderboard, so there is nobody to cheat
   but themselves."
-- P 49-95 verbatim.
+- P 49-95 verbatim, with one addition. P's "**The comment trigger.**" bullet (62-75) says
+  what the two checks answer and stops there, leaving the residual unstated: neither
+  check makes the head's code trustworthy, and the template ships this workflow to every
+  game. Append to that bullet, in P's register, wrapped as P wraps:
+
+  ```markdown
+  What neither check does is make the head trustworthy. A head in this repository was
+  pushed by someone holding write access, so the token sits inside that boundary and
+  behind no narrower one; while `main` requires no review, the same person could land the
+  same code and let the push run it beside the same token, and `/chromatic` is no
+  escalation over that. What the word does mean is that typing it runs a branch's code,
+  and a branch nobody has read is not one to type it on.
+  ```
+
+  This is a managed page, so it reaches every game and every later `copier update`. No
+  workflow file changes here: T03's `chromatic.yml` is untouched.
 
 ### `explanation/quality-philosophy.md`
 

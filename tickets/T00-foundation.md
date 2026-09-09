@@ -1225,7 +1225,17 @@ byte-different from its P or H source unless this step says so, because
    run over `settings.allium`; it is not one of the twelve).
 5. **Seed root files.** `template/SECURITY.md` is P's `SECURITY.md` with lines 28-32
    deleted (the two out-of-scope bullets that name Poodl's answer and its custom links,
-   including the decision link). `template/README.md.jinja`:
+   including the decision link) and one paragraph added after P line 7, because GitHub
+   offers private vulnerability reporting on public repositories and a game may be
+   rendered into a private one (T07 §2 gives the wording, which this step copies):
+
+   ````markdown
+   GitHub offers that form on public repositories. While this repository is private, only
+   people its owner has added can see it at all, so report to the owner directly instead —
+   the account named in this repository's address. Do not open an issue.
+   ````
+
+   `template/README.md.jinja`:
 
    ```markdown
    # {{ game_name }}

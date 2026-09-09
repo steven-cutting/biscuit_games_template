@@ -40,7 +40,12 @@ needs settings that no file can carry, and Poodl records each of them:
   207-217 and 251-261; CONVENTIONS.md §7).
 - **Private vulnerability reporting is promised** by the seed `SECURITY.md`, which is
   Poodl's minus three bullets (`/Users/scutting/projects/poodl/SECURITY.md` lines 3-7;
-  CONVENTIONS.md §4).
+  CONVENTIONS.md §4). The promise is conditional and the file says so: GitHub offers the
+  form on public repositories, and the paragraph T07 adds after Poodl's line 7 sends a
+  reporter to the repository's owner directly while it is private. So this step turns the
+  feature on where it exists, and where it does not the policy still names a route.
+  `SECURITY.md` is a seed, excluded from `copier update`, so a game rendered before that
+  paragraph existed keeps the older wording.
 - **The platform package must grant the repository read access** so CI can install
   `@steven-cutting/biscuit-games` with the run's own token. It is "a setting on the
   package, not on either repository" (troubleshooting.md lines 69-70; maintenance.md
@@ -201,7 +206,7 @@ lines 1-5 for the shell shape this repository's scripts take, and CONVENTIONS.md
    | 1 | Pages source | `gh api repos/R/pages --jq .build_type` | prints `workflow` | `404`: `gh api -X POST repos/R/pages -f build_type=workflow`; `legacy`: `gh api -X PUT repos/R/pages -f build_type=workflow`; a `409` on the `POST` falls back to the `PUT` |
    | 2 | Protection on `main` | the `--jq` below | prints `false <checks sorted, comma-joined> false false false false false` | `gh api -X PUT repos/R/branches/main/protection --input -` with the body below (`404` "Branch not protected" means "not yet") |
    | 3 | `CHROMATIC_PROJECT_TOKEN` | `gh secret list -R R`, first column | present, unless `--chromatic-token-stdin` was given (then it is rotated) | `gh secret set CHROMATIC_PROJECT_TOKEN -R R` reading stdin; without a token: `skipped: no token supplied; chromatic.yml notes the absence and skips the publish` |
-   | 4 | Private vulnerability reporting | `gh api repos/R/private-vulnerability-reporting --jq .enabled` | prints `true` | `gh api -X PUT repos/R/private-vulnerability-reporting`; a `404` prints `not available: the repository is private` and continues |
+   | 4 | Private vulnerability reporting | `gh api repos/R/private-vulnerability-reporting --jq .enabled` | prints `true` | `gh api -X PUT repos/R/private-vulnerability-reporting`; a `404` prints `not available: the repository is private; SECURITY.md's fallback is the route` and continues |
    | 5 | Package read grant | none (no endpoint) | never; always printed | the five UI steps from step 1, and the check: the first CI run's install succeeds with `github.token`; a `404 Not Found` for the package is the missing grant |
    | 6 | Hygiene (`--hygiene` only) | `gh api repos/R --jq '[.delete_branch_on_merge, .has_wiki, .has_projects] \| map(tostring) \| join(" ")'` | prints `true false false` | `gh repo edit R --delete-branch-on-merge --enable-wiki=false --enable-projects=false` |
 
@@ -295,9 +300,11 @@ lines 1-5 for the shell shape this repository's scripts take, and CONVENTIONS.md
    A rendered game passes `just check` on its first run, but four settings no file can
    carry stand between it and a green first push: the Pages source set to GitHub
    Actions, `main` protected behind the three CI jobs, private vulnerability reporting
-   switched on, and the platform package granting the repository read access.
-   `scripts/bootstrap_repo.sh` applies the first three with `gh` and prints the fourth,
-   which has no API. Run `scripts/bootstrap_repo.sh steven-cutting/<game>` to see what
+   switched on where GitHub offers it (public repositories; on a private one
+   `SECURITY.md` names the fallback), and the platform package granting the repository
+   read access. `scripts/bootstrap_repo.sh` applies the first three with `gh` and
+   prints the fourth, which has no API. Run
+   `scripts/bootstrap_repo.sh steven-cutting/<game>` to see what
    it would change and add `--apply` to change it; every `--apply` is an authorised
    action, and a second one changes nothing. This repository was bootstrapped the same
    way with `--no-pages --checks fast,full`, `full` joining only once the package
@@ -354,6 +361,11 @@ lines 1-5 for the shell shape this repository's scripts take, and CONVENTIONS.md
 - [ ] After the first `--apply`, the four reads show: `build_type` `workflow` (games),
       the protection line `false <checks> false false false false false`, vulnerability
       reporting `true` (public repositories), and the secret listed when supplied.
+- [ ] On a private repository, step 4 prints
+      `not available: the repository is private; SECURITY.md's fallback is the route`
+      and the run continues. The rendered file is not this ticket's to check — rendering
+      is a non-goal above and T11's work — but the message must name the fallback so the
+      maintainer is not left with a policy pointing nowhere.
 - [ ] `steven-cutting/biscuit_games_template` requires `fast` right after T00 merges,
       and `fast` plus `full` only after the package grant and one green `full`.
 - [ ] `tic_tac_toe_beans`' first push runs `frontend`, `documents` and `stories`
@@ -408,7 +420,9 @@ gh api repos/steven-cutting/biscuit_games_template/branches/main/protection --jq
 
 Expected: `workflow`; `[false,["frontend","documents","stories"],false,false,false]`
 (contexts in the order sent);
-`true`; `CHROMATIC_PROJECT_TOKEN` listed or nothing; `["fast"]` after round one and
+`true` if step 10 (a) made the repository public, and `HTTP 404` while it is private,
+which is the answer step 4 reports as `not available` and `SECURITY.md`'s fallback
+covers; `CHROMATIC_PROJECT_TOKEN` listed or nothing; `["fast"]` after round one and
 `["fast","full"]` after round two.
 
 The end-to-end proof, after T11's first push:

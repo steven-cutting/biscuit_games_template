@@ -44,6 +44,13 @@ per-repository configuration is the wrong unit. This ticket is a recommendation
 where shared tooling lives, and every step that installs an app, stores a secret or opens
 a pull request in another repository is separately authorised (CONVENTIONS.md §11).
 
+One thing an updater changes that is not a pin: it becomes the first author of a branch
+in these repositories who is not a person with write access. `chromatic.yml` decides
+whose code may run beside the Chromatic token by asking whether the head is a fork
+(Poodl's file, lines 129-135) — a question an updater's in-repo branch passes while
+carrying code nobody wrote. Step 5 closes that before the first bump PR is opened, and
+the Goal below counts it as part of shipping the updater.
+
 Read first: CONVENTIONS.md §0, §4, §9 (the template repository's own pins), §11, §12
 (the Renovate and Dependabot item), §13; Poodl's `docs/how-to/maintain-dependencies.md`
 in full; the hub's `scripts/install_allium.py` lines 1-60.
@@ -56,6 +63,10 @@ with its comment, and a hook rev, and that pass each repository's own gate. The
 recommendation is Renovate with a shared preset; Dependabot is the fallback if the Mend
 app is not wanted. The choice is made with evidence, recorded in the ticket's hand-back
 notes, and shipped as one managed file in the template.
+
+Shipping it includes the `/chromatic` question step 5 settles: no bump pull request is
+opened until an updater's in-repo branch is either refused by `authorize` or ruled out by
+the managed dependency page.
 
 ## Non-goals
 
@@ -79,6 +90,10 @@ notes, and shipped as one managed file in the template.
 | `template/docs/how-to/maintain-dependencies.md` | M | T07's page | Drop the "no Dependabot" sentence; add "What the updater proposes and what stays manual" |
 | `poodl: renovate.json` | other repo | new | Same one-line file, in a pull request |
 | `biscuit_games: renovate.json` | other repo | new | Same one-line file, in a pull request |
+| `template/.github/workflows/chromatic.yml` | M | T03's file | Step 5, guard branch only: one more `deny` in `authorize` for a bot-authored head |
+| `poodl: .github/workflows/chromatic.yml` | other repo | its own file | Step 5, guard branch only: the same `deny`, in the step 7 pull request |
+| `biscuit_games: .github/workflows/chromatic.yml` | other repo | its own file | Step 5, guard branch only: the same `deny`, in the step 7 pull request |
+| `tickets/CONVENTIONS.md` | repo | §7 | Step 5, guard branch only: the `chromatic.yml` paragraph gains the guard |
 
 ## Steps
 
@@ -142,16 +157,47 @@ notes, and shipped as one managed file in the template.
    `just test` (the inventory test now expects the path). This is a new managed file:
    record it under Managed in the Unreleased section of the template `CHANGELOG.md` and
    note that the next release is MINOR (CONVENTIONS.md §10).
-5. **Update the managed page.** In `template/docs/how-to/maintain-dependencies.md`
+5. **Close the `/chromatic` path this ticket opens.** Until now nothing proposed a bump
+   (the fact at the top of Context), so every branch in these repositories was pushed by
+   someone with write access and `chromatic.yml`'s fork check was the whole of "whose
+   code runs". An updater's pull request is a branch **in the base repository**: it
+   passes that check, and `/chromatic` on it checks out the head and runs `just sync`
+   — `npm ci --no-audit`, no `--ignore-scripts` — before the publish step that carries
+   `CHROMATIC_PROJECT_TOKEN`. A maintainer typing the word on a bump PR would therefore
+   run the newly proposed dependency's install scripts beside the token, which is the one
+   case the workflow's own reasoning does not cover. Settle it one of two ways and record
+   which, with the reason, in the hand-back notes:
+
+   1. **A guard in `authorize`** (preferred). One more `deny` in the gate step of
+      `chromatic.yml`, beside the fork check and before the reaction: refuse a head whose
+      pull request was opened by a bot (`gh pr view --json author` reports
+      `author.is_bot`) or whose branch carries the updater's prefix. It costs visual
+      review on bump PRs, which is exactly the case it exists for; a maintainer who wants
+      one pushes the branch on by hand under their own name. This edits the workflow in
+      three places — `template/.github/workflows/chromatic.yml` here, and Poodl's and the
+      hub's in the pull requests step 7 already opens — and `tickets/CONVENTIONS.md` §7's
+      `chromatic.yml` paragraph, which is the living description of that file. Files
+      touched carries all four rows, marked for this branch only. T03 is `done` by then:
+      its composition and
+      diff signatures are a record of how the file was first built, not a thing to edit.
+      `test_verbatim_files_are_byte_identical` compares `template/` to its own render and
+      is unaffected by diverging from Poodl.
+   2. **A stated rule** in `template/docs/how-to/maintain-dependencies.md`, the page step
+      6 rewrites anyway: `/chromatic` is not typed on an updater's branch until its diff
+      has been read. Cheaper, and it relies on a person remembering.
+
+   Take (2) only if (1) proves awkward against the updater actually chosen — a bot whose
+   pull requests report no `author.is_bot`, or branch names the guard cannot match.
+6. **Update the managed page.** In `template/docs/how-to/maintain-dependencies.md`
    remove the sentence that says there is no Dependabot and add a section
    `## What the updater proposes and what stays manual`: the four ecosystems it moves,
    the hub package (proposed, approved by hand from the dashboard), and the two things
    that stay manual: the Allium checksums, and any pin whose bump the game's gate
    rejects. Run `just test` and, in a render, `just check-docs`.
-6. **Consume it in Poodl and the hub.** **Authorisation required:** one pull request in
+7. **Consume it in Poodl and the hub.** **Authorisation required:** one pull request in
    each repository adding `renovate.json`; each PR must pass that repository's own
    required checks before merge.
-7. **Prove it** on the template repository first: wait for the dependency dashboard
+8. **Prove it** on the template repository first: wait for the dependency dashboard
    issue to list the four ecosystems, take one PR per ecosystem through `fast` and
    `full`, and record the outcomes.
 
@@ -168,6 +214,11 @@ notes, and shipped as one managed file in the template.
       release, proving the registry host rule.
 - [ ] `template/docs/how-to/maintain-dependencies.md` no longer says there is no
       updater, and `just check-docs` passes in a render.
+- [ ] The `/chromatic` path is closed: either `authorize` refuses a bot-authored head in
+      all three repositories' `chromatic.yml` (and CONVENTIONS.md §7 describes it), or
+      the managed dependency page states the rule. Which, and why, is in the hand-back
+      notes. Proof for the guard: `/chromatic` on an updater's pull request prints the
+      refusal notice, leaves the run green, and publishes nothing.
 - [ ] The Allium checksums were never touched by an automated PR.
 
 ## Verification
@@ -205,6 +256,8 @@ Expected: one dashboard issue listing npm, uv, GitHub Actions and pre-commit; PR
 Filled in by the agent that executes this ticket.
 
 - Which updater was chosen, and the step 1 evidence for each of (a) to (e).
+- How step 5 was settled: the guard or the stated rule, with the reason, and — for the
+  guard — the three workflow diffs and the CONVENTIONS.md §7 wording as merged.
 - The exact preset as merged, and the host path the one-line file extends.
 - The four proving PRs (one per ecosystem) and their check outcomes.
 - What was handed back: to C01 if the host was not yet decided; to T12 if the template
@@ -218,6 +271,11 @@ Filled in by the agent that executes this ticket.
   before the choice is made.
 - Whether the Renovate app needs the `read:packages` token as an app secret or as a
   repository secret per consumer; check the app's host-rule documentation.
+- Whether the chosen updater opens its pull requests from branches in the base
+  repository. Renovate and Dependabot both do, which is what makes step 5 necessary; an
+  updater working from a fork would be refused by `chromatic.yml`'s existing fork check
+  and would need no guard. Check: the first proving PR's
+  `gh pr view --json isCrossRepository,headRefName,author`.
 - Whether `lockFileMaintenance` refreshes `uv.lock` without a pin change, or whether a
   separate `uv lock --upgrade` PR is needed; check with one weekly run.
 - Whether the hub-package rule should also apply in the template (its pin is a template

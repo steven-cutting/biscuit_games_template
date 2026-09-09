@@ -370,7 +370,7 @@ template/
 ├── CLAUDE.md                                     M   P verbatim (`@AGENTS.md\n`, byte-pinned)
 ├── README.md.jinja                               S   game_name, description, pages_url, base_path; Poodl README shape minus modes/status
 ├── CHANGELOG.md.jinja                            S   Keep a Changelog skeleton; `[Unreleased]: {{ repository_url }}/commits/main/`
-├── SECURITY.md                                   S   P minus the three game-specific out-of-scope bullets (lines 28-32) and the decision link
+├── SECURITY.md                                   S   P minus the three game-specific out-of-scope bullets (lines 28-32) and the decision link, plus the private-reporting fallback paragraph (T07 §2)
 ├── chromatic.config.json                         M   P verbatim (autoAcceptChanges "main")
 ├── eslint.config.js                              M†  H's minus `'dist/'` in ignores (Poodl's two vocabulary rules dropped)
 ├── lychee.toml                                   M†  P minus "site"
