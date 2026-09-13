@@ -1,7 +1,7 @@
 ---
 id: T09
 title: Decision records: the ten seed decisions and their index
-status: open
+status: done
 depends_on: [T00]
 parallel_with: [T01, T02, T03, T04, T05, T06, T07, T08]
 branch: ticket/t09-decisions
@@ -566,17 +566,108 @@ cannot run, say so in the hand-back notes and rely on the two offline checks abo
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+**What was verified and how.**
 
-- What was verified and how: quote the output of every Verification command, and say
-  whether the `just initialize && just check-docs` run happened.
-- What deviated from the ticket and why: any P line whose number or content differed from
-  what a step states, any replacement text you reworded, and any tier or link you left
-  out.
-- What was handed back to another ticket: a manifest title, audience or slug to change
-  (T00 follow-up on `main`); a page a record links to that turned out not to exist
-  (T07 or T08); an allowlist change in `tests/test_render.py` (T00 or T10).
-- Which open points were settled, and how.
+- `just check`, exit 0. `uv lock --check` resolved 33 packages; every prek hook reported
+  Passed (Ruff lint and format, the builtin checks including merge conflicts,
+  EditorConfig, markdownlint, typos, lychee, shellcheck, actionlint, ripsecrets); mypy
+  printed `Success: no issues found in 6 source files`; pytest printed
+  `27 passed, 16 warnings in 11.44s`, 23 in `tests/test_render.py` (among them
+  `test_no_poodl_outside_provenance` and `test_managed_pages_link_only_to_stable_pages`)
+  and 4 in `tests/test_validators.py`. The warnings are Copier's `DirtyLocalWarning`.
+- `rm -rf ai_tmp/render && just render`, then `python3 ai_tmp/render/scripts/validate_docs.py`:
+  `Validated 38 pages and 39 canonical topics.`, exit 0.
+- `npx --yes markdownlint-cli2@0.23.2 "docs/decisions/*.md"` in the render:
+  `Linting: 68 files` and `Summary: 0 issues in 0 files`, exit 0. The render's config adds
+  its own `**/*.md` glob, so the run covers every page.
+- The forbidden-token grep printed `clean`, and so did the rendered-delimiter grep. The
+  line-11 loop printed eight lines, each the step 3 sentence, naming Poodl's 0001, 0002,
+  0003, 0004, 0006, 0008, 0011 and 0013 in that order.
+- `game_name` occurs once in `README.md.jinja` and renders once; `pages_url` occurs once
+  in 0010 and renders as `https://steven-cutting.github.io/tic_tac_toe_beans/` inside a
+  code span. The only other `github.io` in the directory is the
+  `<owner>.github.io/<repository>/` pattern.
+- The network run happened. `git init -q -b main && just initialize` exited 1 at
+  `npm run lint:fix`, after `npm ci`, Chromium and allium 3.6.1 had installed and before
+  `install-hooks`: ESLint `@typescript-eslint/restrict-template-expressions` at
+  `stories/Lockup.stories.svelte:83:31`. `just check-docs` then exited 0, but prek skipped
+  markdownlint, typos and lychee with `(no files to check)`, because the fresh repository
+  tracked nothing. After `git add -A` in the render, `just check-docs` reported
+  markdownlint, typos and lychee Passed and `Validated 38 pages and 39 canonical topics.`,
+  exit 0. `npx prettier --check docs/decisions/` printed
+  `All matched files use Prettier code style!`; `*.md` is in the render's `.prettierignore`.
+- A word-level `git diff --no-index` of each carried record against P's at `0a46a485`
+  shows only the edits steps 3 to 10 name, and in 0004 the review fix recorded below.
+
+**What deviated from the ticket and why.**
+
+- Every P line range in steps 4 to 11 matched the paragraph the step describes; no number
+  or content differed.
+- Step 9: the no-token sentences extend the paragraph ending "Chromatic is not a required
+  check." rather than starting a new one, because "either" reads back to that sentence.
+- Step 11 gives bullets rather than text, so 0008's prose is new. P's "written down in
+  three places, including the troubleshooting page" became "written down where a first
+  run meets it, including the troubleshooting page", because the count across T07's and
+  T08's pages cannot be checked from this lane. P 0013 lines 21-26 are summarised without
+  naming Poodl's modules, and the Decision's lead sentence ends "and restate only what this
+  game has a surface for" in place of P's "and delete every copy it makes redundant".
+- Step 12: 0009 writes out every managed file a game is expected to edit, because a game
+  has no CONVENTIONS.md to point at. It names both conflict markers without saying which
+  side each bounds, and keeps them mid-line in code spans so no line starts with one (the
+  template's `check-merge-conflict` hook). "An update refuses a dirty worktree" comes from
+  CONVENTIONS.md §10. The link to the update procedure sits in Related pages, not the body.
+- Step 13: 0010 writes `github.event.repository.name` bare in a code span, since the
+  workflow expression syntax would be read as Jinja in a `.jinja` file. One sentence is
+  added to the `paths.base` consequence: a root-relative path works locally and breaks
+  once published beneath the repository's name. The re-asked answer comes from §10.
+- Step 7, after review of the pull request: P's "`just initialize` installs both" is untrue
+  of `uv` and Node, since `scripts/initialize.sh` (P's and the template's alike) invokes
+  `uv` and `npm` before it installs anything. 0004 now says both have to be installed
+  first, and that `just initialize` runs each to lock and install its own dependencies.
+- Step 12, after review of the pull request: "managed pages say "this game" and never the
+  name" overstated CONVENTIONS.md §5, under which `AGENTS.md` and `docs/README.md` render
+  the name. 0009 names those two as the exceptions.
+- Kept verbatim as steps 5 and 8 direct, though they read slightly past a template game:
+  0002 still says "no `navigator.clipboard` at all" and "both real code paths" while the
+  template ships no clipboard port (CONVENTIONS.md §4 "Not shipped"); 0002 and 0005 still
+  say "the domain" with no `src/lib/domain/` shipped; 0005 keeps the TypeScript 5.x and
+  6.x detail. A game that finds one untrue edits its own seed copy.
+- A `CHANGELOG.md` bullet under Seed, though CONVENTIONS.md §11 limits a lane to its
+  listed files: `AGENTS.md` requires every seed change to be recorded there, review of the
+  pull request asked for it, and one bullet appended to the Seed list is the whole change.
+- The ticket's `branch:` is `ticket/t09-decisions`; the worktree was created on
+  `T09-decisions`, and the commit is there.
+
+**What was handed back to another ticket.**
+
+- To T03: 0006's no-token paragraph (step 9) describes the hub's token guard, which T03
+  step 3 grafts into `template/.github/workflows/chromatic.yml`. Until T03 merges, the
+  shipped workflow runs `just chromatic` unguarded, so a game with no
+  `CHROMATIC_PROJECT_TOKEN` gets a failed run rather than the skip 0006 promises. T03's
+  verification (`if: steps.token.outputs.present == 'true'` on the publish step and
+  `PUBLISHED` in the report step) is what makes the record true; the workflow is not this
+  lane's file.
+- Nothing else. The manifest's eleven entries already equal the frontmatter, every link
+  target is a shipped page (the validator's link check passed in the render), and no
+  allowlist in `tests/test_render.py` needs to change.
+- The `just initialize` abort is `stories/Lockup.stories.svelte` line 83, T05's file
+  (step 9 and its `FRAME_WIDTH`). T00's hand-back notes already record the same ESLint
+  error, so no new hand-back is raised; the networked documentation check was completed by
+  running `just check-docs` directly on the staged render.
+
+**Which open points were settled, and how.**
+
+- CONVENTIONS.md §12 assigns nothing here, and nothing was checked under it.
+- `test_managed_pages_link_only_to_stable_pages` admits targets matching
+  `fnmatchcase(resolved, "docs/decisions/*.md")` (`tests/test_render.py` line 275), which
+  includes `decisions/README.md`, 0009 and 0010 as well as the carried records. No T00
+  follow-up.
+- The manifest names 0009 "Decision 0009: Rendered from the template" and 0010
+  "Decision 0010: A project Pages site", both with audience
+  `[contributor, maintainer, agent]`; the files carry those values unchanged.
+- typos flags nothing: the template's `just lint` ran it over all eleven sources and the
+  render's `check-docs` ran it over the rendered pages. No `extend-words` entry is needed,
+  so nothing goes to T01.
 
 ## Open points
 
