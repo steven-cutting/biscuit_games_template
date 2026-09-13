@@ -1510,6 +1510,10 @@ No `[tool.typos.default.extend-words]` entry was needed; typos passes over `tick
 - **CONVENTIONS.md §9, `pyproject.toml` paragraph.** It lists `tests/**` waivers as
   `["PLR2004", "S101", "S603", "S607"]`; this ticket and the committed file add `S404`.
   Harmless, but the two disagree.
+- **This ticket's Step 10 table.** Its ranges for `.gitignore` (delete 24-26) and
+  `Justfile` (delete 68-79) each stop one line short of CONVENTIONS.md §4 (24-27 and
+  68-80): the blank line after each removed block. §4 wins, so both stubs follow it and
+  neither keeps a double blank line.
 
 ### Open points settled
 
