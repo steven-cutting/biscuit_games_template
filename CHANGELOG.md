@@ -24,6 +24,10 @@ are tags on `main`, and what each level means for a rendered game is stated in
 - `docs/decisions/` in final form: the index and ten records, eight carried from Poodl
   and two new, on being rendered from the template and on the project Pages site. A seed
   change reaches no game that already exists; none does yet.
+- `stories/Lockup.stories.svelte` in final form: the lockup drawn by the platform's
+  `Wordmark` through `GAME_NAME`, and the header at the narrowest supported width with
+  one `settings` action and no chip. A seed change reaches no game that already exists;
+  none does yet.
 
 ### Questionnaire
 

@@ -3,29 +3,28 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { expect, fn, within } from 'storybook/test';
 
-  import Lockup from '../src/lib/components/Lockup.svelte';
   import { GAME_NAME } from '../src/lib/brand';
+  import Lockup from '../src/lib/components/Lockup.svelte';
   import { MINIMUM_TOUCH_TARGET, NARROWEST_SUPPORTED_WIDTH } from '../src/lib/config';
 
   // The gutters `.shell` gives the page at every width, so a frame here leaves
   // the header exactly the room the route does.
   const SHELL_GUTTER = '1rem';
+  const FRAME_WIDTH = `${String(NARROWEST_SUPPORTED_WIDTH)}px`;
   const LOCKUP = `biscuit games / ${GAME_NAME}`;
 
   const OVERVIEW = [
-    'This game’s own lockup: the platform’s words and then its own, always lowercase,',
-    'always in the display face. The platform ships a wordmark that says "biscuit games"; a',
-    'page whose heading said only that would not name the page, so this is what the route',
-    'hands the platform header as its brand.',
+    'This game’s lockup: the platform’s words and then its own, drawn by the platform’s',
+    '`Wordmark` through its `product` prop. The route hands it to `HeaderBar` as the `brand`',
+    'snippet, so the page’s only `h1` names the page rather than the platform alone.',
     '',
-    'No governing surface — this is brand, decided upstream. The mark is the brand initial in',
-    'a ruled square whose fourth corner is the one soft break ("perfect, broken once"), set in',
-    'type until an illustrator draws the real one, and it is `aria-hidden`: the words are the',
-    'whole accessible text, which the first play holds.',
+    'No governing surface — this is brand, decided upstream. The mark is `aria-hidden`: the',
+    'words are the whole accessible text, which the first play holds.',
     '',
-    'The second story is the only evidence anywhere that this lockup meets the platform’s',
-    'collapse contract, which is a class name and nothing else — the words have to sit in an',
-    'element of class `words` or they simply stay, and overflow a phone.'
+    'The second story is the evidence that the lockup meets the platform’s collapse contract,',
+    'which is a class name and nothing else: `Wordmark` puts the words in an element of class',
+    '`words`, so below about 26rem the header hides them and keeps the mark rather than',
+    'overflowing a phone.'
   ].join('\n');
 
   const { Story } = defineMeta({
@@ -35,28 +34,23 @@
     parameters: { docs: { description: { component: OVERVIEW } } }
   });
 
-  const chip = {
-    word: 'random',
-    label: 'Playing random — change game',
-    onclick: fn(),
-    popup: 'dialog'
-  } as const;
-
-  const actions = [
-    { icon: 'share', label: 'Share a game', popup: 'dialog', onclick: fn() },
-    { icon: 'chart-column', label: 'Statistics', popup: 'dialog', onclick: fn() },
-    { icon: 'settings', label: 'Settings', popup: 'dialog', onclick: fn() },
-    { icon: 'info', label: 'How to play', popup: 'dialog', onclick: fn() }
+  // One action, so the narrow story has a control to measure and
+  // MINIMUM_TOUCH_TARGET has a use; no chip, because this game has no state yet.
+  const ACTIONS = [
+    { icon: 'settings', label: 'Settings', popup: 'dialog', onclick: fn() }
   ] as const;
 </script>
 
 <Story
   name="Lockup"
   play={async ({ canvasElement }) => {
-    // The mark's "b" is hidden, so nothing reads "b" before the words.
-    const words = within(canvasElement).getByText(/biscuit/);
+    const canvas = within(canvasElement);
 
-    await expect(words.textContent).toBe(LOCKUP);
+    // Two assertions because neither holds the claim alone: a text query matches
+    // an element's own text nodes, so the words are found whether or not the
+    // mark beside them is hidden. The mark is held silent on its own.
+    await expect(canvas.getByText('b')).toHaveAttribute('aria-hidden', 'true');
+    await expect(canvas.getByText(/biscuit/).textContent).toBe(LOCKUP);
   }}
 />
 
@@ -80,7 +74,7 @@
       viewports: {
         narrowest: {
           name: 'Narrowest supported',
-          styles: { width: `${NARROWEST_SUPPORTED_WIDTH}px`, height: '568px' }
+          styles: { width: FRAME_WIDTH, height: '568px' }
         }
       },
       defaultViewport: 'narrowest'
@@ -128,11 +122,8 @@
   }}
 >
   {#snippet template()}
-    <div
-      data-frame
-      style="inline-size: {NARROWEST_SUPPORTED_WIDTH}px; padding-inline: {SHELL_GUTTER}"
-    >
-      <HeaderBar {chip} {actions}>
+    <div data-frame style="inline-size: {FRAME_WIDTH}; padding-inline: {SHELL_GUTTER}">
+      <HeaderBar actions={ACTIONS}>
         {#snippet brand()}
           <Lockup />
         {/snippet}

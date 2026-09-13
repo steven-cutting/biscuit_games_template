@@ -1,10 +1,9 @@
 /**
  * The current moment, in milliseconds since the epoch.
  *
- * `game.allium` reads `now` when a game starts, when it completes, and when
- * the endless countdown is armed and elapses. A test that has to wait five
- * real seconds to watch a countdown expire is not a test worth having, so time
- * arrives through a port.
+ * A specification reads `now` when something starts and when it ends. A test
+ * that has to wait real seconds to watch a countdown expire is not a test
+ * worth having, so time arrives through a port.
  */
 export interface ClockPort {
   now(): number;

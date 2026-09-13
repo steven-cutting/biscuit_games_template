@@ -1,7 +1,7 @@
 ---
 id: T05
 title: "Source skeleton: src/, the managed and seed tests, the story and the workshop"
-status: open
+status: done
 depends_on: [T00]
 parallel_with: [T01, T02, T03, T04, T06, T07, T08, T09]
 branch: ticket/t05-source-skeleton
@@ -533,20 +533,266 @@ case is deleted (step 15).
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### What was verified, and how
 
-- What was verified and how: quote the output of every Verification block, including
-  the coverage table and the `git status --porcelain` line after `just initialize`.
-- Which of the seven CONVENTIONS.md §7 files changed and why (a gate's exact message),
-  or that none did.
-- What deviated from the ticket and why (a line number in P that had moved, a Prettier
-  rewrite carried back, an edit the steps did not foresee).
-- What was handed to another ticket: T01 (a config the render needed), T02
-  (`initialize.sh`), T06 (`platformSpecs.test.ts` or the Allium module), a T00 follow-up
-  (`tests/platform.ts`, `tests/inventory.py`, CONVENTIONS), the hub (a platform defect).
-- Which open points were settled and how: the `document.title` case kept or deleted; the
-  measured width and height of the `settings` action at 320px.
-- Whether the render's `just check` was run and where it stopped.
+Both clones were at their pinned commits (`0a46a48` and `09b4894`). Output is quoted, and
+each elision is marked with square brackets.
+
+Step 2: the seven CONVENTIONS.md §7 files, compared by `diff` with §7's fences extracted
+by a script, are identical to them (the `// tests/lockup.test.ts` and
+`// tests/route.test.ts` first lines are inside §7's fences). Step 8: step 8's `sed`
+pipeline plus the inserted case, rebuilt in the scratchpad, is identical to T00's
+`tests/ports.test.ts`. Step 4: `diff` against Poodl shows exactly the two lines the step
+names. Steps 5, 6, 9, 10 and 11 were applied to Poodl's files by a script that takes every
+replacement from this ticket's fences and asserts Poodl's text at each line number the
+steps name before replacing it.
+
+The template repository, on the edited tree:
+
+```text
+$ just test
+[...]
+================= 27 passed, 2 skipped, 16 warnings in 11.35s ==================
+$ just check; echo "just check exit $?"
+uv lock --check
+Resolved 33 packages in 4ms
+uv run --frozen prek run --all-files
+[18 hook lines, every one ending Passed]
+uv run --frozen mypy
+Success: no issues found in 7 source files
+uv run --frozen pytest "$@"
+[...]
+================= 27 passed, 2 skipped, 16 warnings in 11.40s ==================
+just check exit 0
+```
+
+The two skips are `tests/test_specs.py` (`set BISCUIT_TEMPLATE_NETWORK=1`); the sixteen
+warnings are copier's `DirtyLocalWarning`.
+
+```text
+$ for f in src/app.d.ts src/lib/ports/storage.ts tests/setup.ts static/.nojekyll; do [...]
+src/app.d.ts ok
+src/lib/ports/storage.ts ok
+tests/setup.ts ok
+static/.nojekyll ok
+$ grep -r -i -n poodl template/src template/stories template/.storybook [...]
+template/tests/restated.ts:10: * Poodl's table is the worked example: its `game.allium` restates
+$ grep -rn 'statistics.allium\|settings.allium\|word' template/src/lib/ports/ template/src/app.html template/.storybook/
+[nothing; exit 1]
+```
+
+`wc -c template/static/.nojekyll` prints `0`. In `tests/ports.test.ts`, `grep -c
+'^describe('` prints `3` (`storage port` :67, `random port` :141, `clock port` :184),
+`grep -c '^  it('` prints `16`, and `grep -n 'poodl:\|clipboard\|timer\|biscuit-games'`
+prints nothing. `stories/Lockup.stories.svelte` has three `<Story`, imports `GAME_NAME`
+(:6), declares `FRAME_WIDTH` (:13), `LOCKUP` (:14) and `ACTIONS` (:39) with the one
+`settings` entry; its only template-literal interpolation other than through `String()`
+is `LOCKUP`'s `GAME_NAME`, a string.
+
+The render, with a `read:packages` token in `~/.npmrc`, taken from the working tree
+before the content commit (copier's `DirtyLocalWarning`), whose T05 files are the ones
+committed:
+
+```text
+$ rm -rf ai_tmp/render && just render
+[...]
+Rendered into ai_tmp/render
+$ cd ai_tmp/render
+$ git init -q -b main && git add -A
+$ git -c user.name=t05 -c user.email=t05@example.invalid commit -q --no-verify -m render
+$ just initialize
+sh scripts/initialize.sh
+[uv sync, npm install: added 377 packages, playwright install chromium]
+installed allium 3.6.1 at [ai_tmp/render]/.tools/bin/allium
+74 files left unchanged
+
+> tic_tac_toe_beans@0.1.0 lint:fix
+> svelte-kit sync && eslint . --fix && prettier --write .
+
+[every file "(unchanged)" except:]
+tests/platformSpecs.test.ts 7ms
+[...]
+prek installed at `.git/hooks/pre-commit`
+Ready. Next: just check.
+Nothing has been staged, committed, tagged, or pushed.
+$ git status --porcelain
+ M tests/platformSpecs.test.ts
+?? package-lock.json
+?? uv.lock
+$ grep -c allowNumber eslint.config.js || true
+0
+```
+
+ESLint reported nothing and Prettier rewrote no T05 file, so nothing was carried back into
+`template/`. The modified file is T06's (Handed back). With `0` above, step 14's copy was
+skipped: the render's `eslint.config.js` is already the hub's, from T01.
+
+The gates, against the published `@steven-cutting/biscuit-games@1.0.0`:
+
+```text
+$ just frontend-static
+npm run lint
+[...]
+All matched files use Prettier code style!
+npm run check
+[...]
+ERROR "src/lib/components/Lockup.svelte" 20:11 "Type 'string' is not assignable to type 'never'."
+COMPLETED 806 FILES 1 ERRORS 0 WARNINGS 1 FILES_WITH_PROBLEMS
+error: recipe `frontend-static` failed on line 93 with exit code 1
+$ just frontend-unit
+[...]
+ ❯ |unit| tests/lockup.test.ts (1 test | 1 failed) 15ms
+     × names this game after the platform, with the mark silent 14ms
+ ❯ |unit| tests/route.test.ts (3 tests | 1 failed) 51ms
+     × carries the heading the platform header draws for this game 47ms
+[lockup.test.ts:16] Expected: "biscuit games / tic tac toe beans"  Received: "biscuit games"
+[route.test.ts:12] Expected element to have text content: biscuit games / tic tac toe beans
+                   Received: b biscuit games
+ Test Files  2 failed | 2 passed (4)
+      Tests  2 failed | 28 passed (30)
+error: recipe `frontend-unit` failed on line 96 with exit code 1
+$ just frontend-coverage
+[the same two failures, and no coverage table: Vitest reports none when a test fails]
+error: recipe `frontend-coverage` failed on line 99 with exit code 1
+$ npx vitest run --config vite.config.ts --coverage --coverage.reportOnFailure=true
+[the same two failures]
+File            | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+All files       |   98.14 |      100 |     100 |     100 |
+ lib/components |      50 |      100 |     100 |     100 |
+  Lockup.svelte |      50 |      100 |     100 |     100 |
+Statements   : 98.14% ( 53/54 )
+Branches     : 100% ( 15/15 )
+Functions    : 100% ( 23/23 )
+Lines        : 100% ( 52/52 )
+$ just frontend-build && grep -c 'biscuit games / tic tac toe beans' build/index.html
+[...]
+  Wrote site to "build"
+  ✔ done
+0
+$ just storybook-test
+[...]
+   × Lockup 16ms
+   × InTheHeaderAtTheNarrowestSupportedWidth 11ms
+ FAIL  |storybook (chromium)| stories/Lockup.stories.svelte > Lockup
+AssertionError: Expected: "biscuit games / tic tac toe beans"  Received: "biscuit games"
+ FAIL  |storybook (chromium)| stories/Lockup.stories.svelte > InTheHeaderAtTheNarrowestSupportedWidth
+TestingLibraryElementError: Unable to find an accessible element with the role "heading" and name "biscuit games / tic tac toe beans"
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+error: recipe `storybook-test` failed on line 114 with exit code 1
+```
+
+The built page's `h1` text is `b biscuit games`. The text reporter omits files at 100 on
+every metric; `coverage/coverage-summary.json` lists exactly the six files:
+
+```text
+src/lib/brand.ts                 stmts 100 (3/3)    branch 100 (0/0)  funcs 100  lines 100 (3/3)
+src/lib/config.ts                stmts 100 (6/6)    branch 100 (0/0)  funcs 100  lines 100 (6/6)
+src/lib/components/Lockup.svelte stmts 50 (1/2)     branch 100 (0/0)  funcs 100  lines 100 (1/1)
+src/lib/ports/clock.ts           stmts 100 (7/7)    branch 100 (2/2)  funcs 100  lines 100 (6/6)
+src/lib/ports/random.ts          stmts 100 (19/19)  branch 100 (6/6)  funcs 100  lines 100 (19/19)
+src/lib/ports/storage.ts         stmts 100 (17/17)  branch 100 (7/7)  funcs 100  lines 100 (17/17)
+```
+
+`tests/ports.test.ts` and `tests/platformSpecs.test.ts` are the two files that passed: 30
+tests are 16 ports, 1 lockup, 3 route and 10 platform cases.
+
+Whether the seven files pass once the package carries `product`, measured without
+touching either repository: `git archive HEAD` of the hub into the scratchpad, `npm ci`
+and `npm pack` there (`prepack` runs `svelte-package`), a copy of the render at
+`ai_tmp/render-hubhead`, and `npm install --no-save` of the tarball in it (`grep -c
+product` on the installed `dist/components/Wordmark.svelte` prints `3`). No T05 file
+differs from the render above:
+
+```text
+frontend-static exit 0     [All matched files use Prettier code style!]
+                           [COMPLETED 816 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS]
+frontend-unit exit 0       [Test Files  4 passed (4); Tests  30 passed (30)]
+frontend-coverage exit 0   [Statements 100% (54/54), Branches 100% (15/15),
+                            Functions 100% (23/23), Lines 100% (52/52)]
+frontend-build exit 0      [grep -c 'biscuit games / tic tac toe beans' build/index.html: 1]
+storybook-test exit 0      [Test Files  1 passed (1); Tests  3 passed (3)]
+```
+
+### Which CONVENTIONS.md §7 files changed
+
+None. The render's gates reject `Lockup.svelte` (`svelte-check`: `Lockup.svelte` 20:11
+`Type 'string' is not assignable to type 'never'.`) and the test and story assertions
+that read its words, for a reason outside this lane: the published package's `Wordmark`
+"takes no props". `npm view @steven-cutting/biscuit-games versions` against GitHub
+Packages prints `["1.0.0"]`, and `product` arrived in hub commit `41c430b`, after the
+tag. §7, the Non-goals (no `<style>` and no `{#if}` in `Lockup.svelte`) and every
+assertion were left as written; the hub-HEAD run shows the seven files pass unchanged
+against a package that carries `product`.
+
+### Deviations, and why
+
+- **Branch.** The work is on `T05-source-skeleton`, the Supacode worktree's branch, as
+  T00's to T02's were, not on `ticket/t05-source-skeleton`.
+- **What T00 had left.** `app.html` and `clock.ts` were still Poodl's verbatim;
+  `random.ts` had lines 4-8 rewrapped into four lines where step 6 gives five, which is
+  what keeps its branch sites at :27, :40, :60 and :61; `main.ts` read "no longer keeps"
+  and "this game's own sidebar" and still cited decision 0013 and `fixtures.ts`;
+  `preview.ts` had only line 46; the story was Poodl's with its words scrubbed, four
+  actions and the chip. All six were rebuilt from Poodl's files, the story included, not
+  from T00's copies. `clock.ts`'s branch sites moved up one line, to :13 and :23.
+- **"No `chip`" in the story.** Step 9's own comment reads "no chip, because this game
+  has no state yet", and it is kept as written. There is no chip constant and no `chip`
+  prop.
+- **The five-run `document.title` loop.** Its `|| break` stopped at run 1 on the heading
+  case, which fails for the `Wordmark` reason, so it could not settle the title claim.
+  `npx vitest run --config vite.config.ts tests/route.test.ts -t 'titles the document'`
+  was run five times instead.
+- **Coverage figures.** `just frontend-coverage` prints no table when a test fails, so
+  the published-package figures come from `--coverage.reportOnFailure=true`, and the six
+  files from `coverage/coverage-summary.json`. V8 counts fifteen branch sites (clock 2,
+  random 6, storage 7) where step 6 counts fourteen by hand. Step 14's second coverage
+  run, excluding `platformSpecs.test.ts`, was not needed: that file passes.
+- **The hub-HEAD run** is outside the steps. It changed nothing in either repository;
+  `ai_tmp/render-hubhead` and the tarball in the scratchpad are throwaway.
+- **A `CHANGELOG.md` bullet under Seed**, though CONVENTIONS.md §11 limits a lane to its
+  listed files: `AGENTS.md` requires every seed change to be recorded there, review of the
+  pull request asked for it, and one bullet appended to the Seed list is the whole change.
+
+### Handed back
+
+- **CONVENTIONS.md §0 and the hub (maintainer).** The third report, after T00's and
+  T01's. The remedy is a hub release whose `Wordmark` carries `product`, with
+  `hub_package_version` in `copier.yml` and the pin in `package.json.jinja` moved to it,
+  or a different `Lockup.svelte`; either is a CONVENTIONS change on `main`, and the
+  hub-HEAD run shows the first needs no T05 change. Until then, in every render,
+  `frontend-static`, `frontend-unit`, `frontend-coverage` and `storybook-test` exit 1 and
+  the built `h1` reads `b biscuit games`. `just initialize` is unaffected.
+- **T06.** `tests/platformSpecs.test.ts` is still not Prettier-formatted: `initialize`'s
+  `prettier --write .` rewrites it, which is the modified file in the status above. Its
+  ten cases pass.
+- **T00 follow-up.** None: `tests/inventory.py:158` lists `tests/ports.test.ts` in
+  `GAME_EDITED`, and `tests/platform.ts` needed nothing.
+- **T01, T02.** None: the render's ESLint config is the hub's, and `initialize.sh` ran
+  through to `Ready. Next: just check.`
+
+### Open points settled
+
+- **`document.title`: kept.** Five runs of the title case alone each printed
+  `Tests  1 passed | 2 skipped (3)`; it also passes in both 30-test runs above.
+- **The 44px action.** Against the published package the narrow story fails at its
+  heading query, which the play reaches only after the frame-overflow check and the
+  `getAllByRole('button')` loop have passed; in the hub-HEAD run the whole play passes,
+  axe included. So the one `settings` action measures at least `MINIMUM_TOUCH_TARGET` in
+  both directions at 320px under either package. The loop asserts rather than prints, so
+  no box figure was recorded (`H/src/lib/components/IconButton.svelte:57` sets
+  `inline-size: 44px`). Not a platform defect.
+- **The coverage denominator.** Exactly six files in both runs; `All files` at or above
+  90 on every metric in both; `config.ts` at 100 on lines, loaded by
+  `platformSpecs.test.ts`.
+- **T00's `eslint.config.js`.** Gone: `grep -c allowNumber` printed `0`.
+- **`tests/ports.test.ts` as M†.** Listed in `GAME_EDITED`.
+
+### The render's `just check`
+
+Not run. It reaches `frontend-static` third and would stop there, on `Lockup.svelte`,
+under the published package. `ai_tmp/render` and `ai_tmp/render-hubhead` are left in
+place; `ai_tmp/` is gitignored.
 
 ## Open points
 
