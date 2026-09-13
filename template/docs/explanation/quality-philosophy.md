@@ -14,10 +14,11 @@ a decision, it should be deleted rather than tolerated.
 
 ## Checks are read-only
 
-Every recipe under `just check` reports and never repairs. `just fix` is the only command
-allowed to modify files. `run_project_check.py` enforces this by snapshotting the
-worktree and comparing it after every recipe, so a check that rewrites a file fails the
-run rather than hiding drift.
+Every recipe under `just check` reports and never repairs. Recipes outside it do write —
+`just format`, `just initialize` and the lock recipes among them — and `just fix` is the
+one whose job is repairing what a check reported. `run_project_check.py` enforces the
+split by snapshotting every path Git does not ignore and comparing after every recipe, so
+a check that rewrites a file fails the run rather than hiding drift.
 
 This is why the pre-commit configuration is split in two. `.pre-commit-config.yaml` is
 the gate and is what gets installed; `.pre-commit-fix.yaml` holds the mutating hooks and
@@ -31,9 +32,10 @@ it passes are all ways of deleting the signal while keeping the machinery.
 
 Where a rule is genuinely wrong for this project, the fix is to configure it once, in the
 config file, with a comment saying why. `eslint.config.js` carries no such override
-today: the seed passes `strictTypeChecked` as shipped, and a number reaching a template
-literal goes through `String()` rather than through an `allowNumber` exception. The first
-override this game adds is a project decision, recorded where the rule lives.
+today: `strictTypeChecked` applies as shipped, so a number reaching a template literal
+has to go through `String()` at the call site, because there is no `allowNumber`
+exception to let it through bare. The first override this game adds is a project
+decision, recorded where the rule lives.
 
 ## Unreachable is not untested
 

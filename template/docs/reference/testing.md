@@ -111,7 +111,7 @@ should be deleted rather than covered; see
 | `platformSpecs.test.ts` | The six figures `src/lib/config.ts` mirrors, held equal to the modules `@steven-cutting/biscuit-games` ships and to any module under `docs/specs/` that states them; and every clause `tests/restated.ts` lists, held to the platform's text word for word. |
 | `lockup.test.ts` | That the lockup names this game after the platform, with the mark silent. This game's file. |
 | `route.test.ts` | The page: the heading the platform header draws for this game, and a main landmark to put the game in. This game's file. |
-| `stories/` | Each component in the states its surface names, rendered in Chromium with axe over every one, and the figures only a layout engine can produce: the seed story frames the header at the narrowest supported width and measures the control there. |
+| `stories/` | Each component rendered in every state its surface names, in Chromium with axe over every one, and the figures only a layout engine can produce: the seed story frames the header at the narrowest supported width and measures every control there. |
 
 ## Related pages
 

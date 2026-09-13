@@ -751,6 +751,15 @@ Expected: green in the template repository.
   in steps 4 onwards matched. `diff` of each page against P's shows only the edits named
   here and the deviations below. `explanation/accessibility.md` is the embedded page as
   written.
+- After review of the pull request, with the fixes below applied: `just check`, exit 0,
+  pytest `27 passed, 2 skipped`; `rm -rf ai_tmp/render && just render ai_tmp/render` and
+  `validate_docs.py` there, `Validated 38 pages and 39 canonical topics.`; the
+  forbidden-token, seed-link and `{{`/`{%`/`{#` greps printed nothing and exited 1;
+  `just check-docs` in that render, after `git init`, `git add -A` and `uv lock`, exit 0.
+  Poodl's lines 14-27 and 139-160 are still substrings of `reference/quality-gates.md`.
+  PyYAML extracted the three multi-line `run:` blocks from
+  `template/.github/workflows/chromatic.yml`, and `shellcheck` 0.11.0 with `-s bash`
+  printed nothing for each.
 
 **What deviated from the ticket and why.**
 
@@ -783,17 +792,74 @@ Expected: green in the template repository.
   line: architecture P 79, layering P 52, specifications P 67, testing P 163,
   troubleshooting P 108 and P 123. In security-model, P 39-47 is replaced as a single
   span.
-- Kept as written, though it reads oddly: in `explanation/layering.md`, "the claims below
-  true, and each of them is load-bearing" now introduces a single claim.
 - The ticket's `branch:` is `ticket/t08-handbook-b`; the worktree is on `T08-handbook-b`,
   and the commit is there.
 
+After review of the pull request, each of these replaces text the steps gave or kept
+verbatim from P:
+
+- `explanation/architecture.md` and `operations/troubleshooting.md`: P's "module-scope
+  work runs once, at build time, in Node" is untrue beside `+layout.ts`'s `ssr = true`;
+  the same code runs again in each visitor's browser as the page hydrates. Both pages
+  now say it runs in both places and that a per-visitor value would disagree between
+  them. `src/routes/+page.svelte` (seed, T05) and decision 0001 (seed, T09) carry the
+  same sentence and are not this lane's.
+- `explanation/quality-philosophy.md` and `reference/commands.md`: P's "`just fix` is the
+  only command that modifies files" is untrue of `just format`, `just initialize` and the
+  lock recipes. Both pages now keep the read-only rule for `just check` and call
+  `just fix` the recipe that repairs. The `just fix` row also names Prettier, which
+  `npm run lint:fix` runs.
+- `explanation/quality-philosophy.md`: the step's "the seed passes `strictTypeChecked` as
+  shipped, and a number reaching a template literal goes through `String()`" described
+  the seed story, which on `main` interpolates the number bare. The sentence now states
+  what the unmodified config demands, which holds on `main` and after T05 alike, so it
+  leaves the list of claims this lane could not check.
+- `explanation/specifications.md`: "a control drawn at 40 pixels fails the story run"
+  overstated. Only a story that measures its controls fails one, and the seed story
+  measures the header's. The page now says the measuring is each story's to do.
+- `explanation/security-model.md`: Chromatic's scopes name `pull-requests: write` beside
+  `issues: write`, with the reason `chromatic.yml` lines 21-27 give, and the `authorize`
+  job holds the run's own token rather than "no secret".
+- `explanation/layering.md`: the step's "platform types" becomes "platform components and
+  types", because `Lockup.svelte` imports `Wordmark`; the routes row gains "the platform
+  package", because `+page.svelte` imports `HeaderBar`. "the claims below true, and each
+  of them is" becomes "the claim below true, and that claim is", which reverses the keep
+  this note used to record.
+- `reference/commands.md`: the `just initialize` row names the `allium` binary, says
+  "dependency trees" rather than "toolchains", and says the hook is installed only from
+  the primary checkout and the Linux browser libraries are named rather than installed
+  (`scripts/initialize.sh` lines 27-30 and 52-57). The `just install-hooks` row says to
+  run it from the primary checkout.
+- `reference/configuration.md`: the appearance globals table gains the `animations` row
+  that `.storybook/preview.ts` lines 209-221 declare.
+- `reference/quality-gates.md`: P 97-104 names the `authorize` block as the only
+  multi-line shell, but `chromatic.yml` has three; the paragraph names all three, each
+  checked as recorded above. The opening sentence limits the snapshot to paths Git does
+  not ignore (`scripts/run_project_check.py` line 54). "Nothing in CI runs a command that
+  does not exist in the `Justfile`" now excepts the Python, `just` and npm installs
+  `ci.yml` runs bare. The gate table and "On `main`" are untouched.
+- `reference/testing.md`: the step's `stories/` cell becomes "Each component rendered in
+  every state its surface names", and "measures the control there" becomes "measures
+  every control there", which holds for the story on `main` and on T05's branch alike.
+- `operations/maintenance.md`: P's "holds TypeScript back a major version because the
+  linter does not support the newer one" was already untrue in Poodl, which pins
+  `typescript` 6.0.3. The sentence now gives the constraint Decision 0005 records:
+  `@storybook/svelte-vite` nests TypeScript 5.9.3, per Poodl's `package-lock.json` at
+  `0a46a485` under the same Storybook 10.5.7 pins.
+- `operations/troubleshooting.md`: P's "Either code on a step that installs nothing" names
+  both codes and says that step reached the registry without a token. The browser section
+  no longer says `just initialize` installs the Linux libraries.
+- Not changed: a review point that `maintenance.md`'s "Nothing is scheduled yet" is stale.
+  The weekly `cron` it cites is in this repository's own `.github/workflows/ci.yml`;
+  `template/.github/workflows/ci.yml` has no `schedule`.
+
 **Claims the pages make that this lane could not check.**
 
-- `explanation/quality-philosophy.md` says a number in a template literal goes through
-  `String()`. On `main` that is false: `template/stories/Lockup.stories.svelte` line 83
-  interpolates `NARROWEST_SUPPORTED_WIDTH` bare. T05's branch introduces
-  `FRAME_WIDTH` through `String()`, so the sentence holds once T05 merges.
+- `explanation/specifications.md` says axe holds a control to no more than WCAG's 24
+  pixels. That is WCAG 2.5.8's figure; no install was run, so axe-core's rule was not
+  read.
+- `explanation/architecture.md` says module-scope code runs again as the page hydrates.
+  That follows from `ssr = true` beside `prerender = true`; no build was run to watch it.
 - "About fourteen branch sites" is the ticket's figure. A coverage run needs `npm ci`
   from GitHub Packages, and none was run.
 

@@ -9,7 +9,9 @@ requires: []
 # Quality gates
 
 `just check` runs the gates in the order below and snapshots the worktree between each
-one. A recipe that modifies a file fails the run, because checks are read-only.
+one. A recipe that modifies a file Git does not ignore fails the run, because checks are
+read-only; an ignored path is outside the snapshot, which is why every build output below
+is ignored.
 
 | Order | Gate | Proves |
 | --- | --- | --- |
@@ -97,10 +99,11 @@ One gap is worth knowing about rather than being surprised by. `actionlint` anal
 `run:` block by handing it to `shellcheck`, and it reports nothing at all when it cannot
 find `shellcheck` on its own `PATH`. Under `prek` each hook gets its own environment, so
 the `shellcheck` hook two rows up is not the one `actionlint` can see, and the shell
-embedded in a workflow goes unread. The `authorize` job in
-`.github/workflows/chromatic.yml` is the only place that shell is more than a line, and it
-was checked by extracting it and running `shellcheck` over it by hand. Anything comparable
-added later deserves the same treatment until the gap is closed.
+embedded in a workflow goes unread. Three `run:` blocks are more than a line, all in
+`.github/workflows/chromatic.yml`: the `authorize` job's gate, and the `chromatic` job's
+token check and its reply on the pull request. Each was checked by extracting it and
+running `shellcheck` over it by hand. Anything comparable added later deserves the same
+treatment until the gap is closed.
 
 ## The mutating counterpart
 
@@ -115,8 +118,9 @@ install, `lock-check`, `frontend-static`, `frontend-coverage` and `frontend-buil
 `documents` runs `sync`, then `install-allium` — the binary no lockfile can name — then
 `lint`, `check-docs`, `check-agents`, `check-specs` and `analyse-specs`; `stories`
 restores the Playwright cache, installs the browser, then runs `storybook-build` and `storybook-test`.
-Nothing in CI runs a command that does not exist in the `Justfile`. The workshop build the
-gate makes is proved and then discarded: that one is uploaded nowhere.
+Past installing Python, `just` and npm themselves, nothing in CI runs a command that does
+not exist in the `Justfile`. The workshop build the gate makes is proved and then
+discarded: that one is uploaded nowhere.
 
 Every job that installs authenticates to GitHub Packages for the design system, with the
 token GitHub mints for the run rather than anything stored: `actions/setup-node` is given

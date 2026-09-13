@@ -12,8 +12,8 @@ Three layers, and imports only ever run downwards.
 
 | Layer | May import | Must not |
 | --- | --- | --- |
-| `src/routes/` | components, ports, brand, config | be imported by anything below it |
-| `src/lib/components/` | components, brand, config, platform types | import a port adapter or reach for a browser global |
+| `src/routes/` | components, ports, brand, config, the platform package | be imported by anything below it |
+| `src/lib/components/` | components, brand, config, platform components and types | import a port adapter or reach for a browser global |
 | `src/lib/ports/` | config | import a component or a route |
 | `@steven-cutting/biscuit-games` | nothing here | be copied back into `src/` |
 
@@ -29,7 +29,7 @@ the rules own as view state of its own.
 
 ## Why the direction matters
 
-The rule is not tidiness. It is what makes the claims below true, and each of them is
+The rule is not tidiness. It is what makes the claim below true, and that claim is
 load-bearing:
 
 **Components are testable without the platform.** A component that read `localStorage`

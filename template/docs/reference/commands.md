@@ -16,9 +16,9 @@ rather than in a shell history.
 
 | Recipe | Purpose |
 | --- | --- |
-| `just initialize` | One explicit first run. Creates both lockfiles, installs both toolchains and the browser the story tests need, normalises formatting, installs the hook. Never stages, commits, tags or pushes. |
+| `just initialize` | One explicit first run. Creates both lockfiles, installs both dependency trees, the browser the story tests need and the pinned `allium` binary, normalises formatting, and installs the hook from the primary checkout; a secondary worktree skips the hook and says so. On Linux it names `just storybook-browsers-deps` rather than running it, because that recipe asks for sudo. Never stages, commits, tags or pushes. |
 | `just sync` | Install exactly what the lockfiles say. Run after pulling. Reads the design system from GitHub Packages, so it needs the token [Develop locally](../how-to/develop-locally.md) describes. |
-| `just install-hooks` | Install the read-only pre-commit gate. |
+| `just install-hooks` | Install the read-only pre-commit gate. Run it from the primary checkout: every worktree shares one hooks directory, and the hook runs the environment of whichever worktree installed it. |
 | `just install-allium` | Download, verify and install the pinned `allium` binary into `.tools/bin/`. Over the network; no lockfile can name a binary. |
 | `just storybook-browsers` | Download the Chromium the story tests render in. Over the network, into a cache outside the repository. |
 | `just storybook-browsers-deps` | The system libraries Chromium links against. Linux only; CI runs it first. |
@@ -44,7 +44,7 @@ rather than in a shell history.
 | Recipe | Purpose |
 | --- | --- |
 | `just format` | Ruff and Prettier, writing. |
-| `just fix` | The mutating hook set, then ESLint autofix, then `just lint`. The only command that modifies files. |
+| `just fix` | The mutating hook set, then ESLint autofix and Prettier, then `just lint`. The recipe that repairs what a check reports. Not the only one that writes: `just format`, `just initialize` and the lock recipes do too, and none of them is a check. |
 
 ## Check
 

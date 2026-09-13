@@ -87,6 +87,7 @@ every palette on `:root`.
 | --- | --- | --- |
 | `theme` | `system`, `light`, `dark` | `system` removes `data-theme` so the device preference decides; the other two set it. |
 | `highContrast` | `off`, `on` | `on` sets `data-high-contrast="true"`, which swaps in the high-contrast palette. |
+| `animations` | `on`, `off` | The animations setting. `on` sets `data-animations="on"` unless `reducedMotion` is `reduce`, because the device's preference wins over the setting; `off` removes the attribute. |
 | `reducedMotion` | `follow`, `reduce` | `reduce` injects a stylesheet that freezes declarative motion. A simulation: nothing inside the page can change what `prefers-reduced-motion` reports. |
 
 ## Values the specifications decide

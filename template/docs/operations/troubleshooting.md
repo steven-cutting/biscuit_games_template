@@ -70,16 +70,18 @@ A `404 Not Found` for the same package is a different fault, and the order matte
 request authenticated and then found nothing it was allowed to see. On a laptop that is a
 token without `read:packages`. In continuous integration it is the package having stopped
 granting this repository read access — a setting on the package, not on either repository.
-Either code on a step that installs nothing is a third fault again, because only the steps
-that install carry a token at all.
+A `401` or a `404` from a CI step that installs nothing is a third fault again. Only the
+steps that install carry a token, so that step reached the registry without one: the
+question is what in it made the request, not which credential it lacks.
 
 ## `just check` stops because Playwright cannot start Chromium
 
 The story gate renders in a real browser, and the browser is in neither lockfile, so
 `just sync` does not install it — `just sync` installs exactly what the lockfiles say. Run
 `just storybook-browsers` once per machine, and again after the `playwright` pin moves. On
-Linux, run `just storybook-browsers-deps` first. `just initialize` does both for you on a
-fresh clone.
+Linux, run `just storybook-browsers-deps` first. On a fresh clone `just initialize`
+downloads the browser for you, but on Linux it only names `just storybook-browsers-deps`,
+because that recipe asks for sudo, so that one is still yours to run.
 
 ## Tests fail on `localStorage`
 
@@ -123,9 +125,11 @@ settings. The workflow cannot do that for itself; see
 
 ## Something works under `just dev` but not in the build
 
-Prerendering. Module-scope work runs once, in Node, at build time — so a value computed
-there is baked into the output for every visitor. Anything that must vary per visitor has
-to happen in the browser.
+Prerendering. Module-scope work runs in Node at build time as well as in the browser, and
+the build's run is what the generated page holds — so a value computed there is the same
+for every visitor until hydration computes it again, and a browser object read there does
+not exist while the page is generated. Anything that must vary per visitor has to happen
+in the browser, after hydration.
 
 ## Related pages
 

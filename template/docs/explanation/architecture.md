@@ -22,10 +22,12 @@ SvelteKit with `@sveltejs/adapter-static`, prerendering every route. `+layout.ts
 `prerender = true` for the whole tree, so a route that could not be rendered at build
 time fails the build rather than shipping broken.
 
-Prerendering has one consequence worth stating plainly: **module-scope work runs once, at
-build time, in Node.** Anything that must differ per visitor — drawing a random value,
-reading device storage, looking at the clock — happens in the browser after hydration, not
-while the page is being generated.
+Prerendering has one consequence worth stating plainly: **module-scope work runs twice,
+once at build time in Node and again in each visitor's browser as the page hydrates.** The
+build's run decides what the generated page holds. Anything that must differ per visitor —
+drawing a random value, reading device storage, looking at the clock — would give the page
+one answer and the browser another, and a browser object is not there to read in Node at
+all, so it happens in the browser after hydration, not while the page is being generated.
 
 The build is portable across base paths. SvelteKit emits relative asset URLs, and
 `paths.base` is read from `BASE_PATH` at build time, which `pages.yml` sets from the

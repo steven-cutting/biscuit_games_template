@@ -20,8 +20,9 @@ currently just the state of `main`.
 **Monthly.** Review dependency versions. Every pin is exact, so nothing moves on its own
 and nothing is picked up by accident either. Follow
 [Maintain dependencies](../how-to/maintain-dependencies.md), and check compatibility
-before choosing a version — the repository already holds TypeScript back a major version
-because the linter does not support the newer one.
+before choosing a version — `@storybook/svelte-vite` pins TypeScript to a 5.x line, so npm
+already nests a second compiler beside the 6.x one this repository uses, as
+[Decision 0005](../decisions/0005-component-workshop.md) records.
 
 **Monthly.** Run `just check-links-online`. It is not part of the gate because it needs
 the network, so external links rot silently until someone looks.

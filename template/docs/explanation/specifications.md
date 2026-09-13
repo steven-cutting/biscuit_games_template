@@ -21,9 +21,12 @@ This page is why.
 A figure looks like a detail and is not. The smallest a control may be is stated once, in
 `operation.allium`'s `config` block, as 44 CSS pixels. This game's root module restates
 it by name, `src/lib/config.ts` mirrors it once, and `tests/platformSpecs.test.ts` holds
-the three equal, so a control drawn at 40 pixels fails the story run on the number rather
-than on a reviewer's eye. Left to prose, a figure like that drifts. Stated as a contract
-with a named guarantee, it is testable.
+the three equal, so a story that measures its controls against `MINIMUM_TOUCH_TARGET`
+fails a control drawn at 40 pixels on the number rather than on a reviewer's eye. The
+measuring is each story's to do: the seed story measures the header's controls, and axe
+holds a control to no more than WCAG's 24 pixels, so a control no story measures is held
+to nothing stricter. Left to prose, a figure like that drifts. Stated as a contract with a
+named guarantee, it is testable.
 
 ## What the modules are
 

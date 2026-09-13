@@ -51,9 +51,10 @@ leaderboard, so there is nobody to cheat but themselves.
 - **Workflow permissions.** CI runs with `contents: read` and `packages: read`, the second
   so the install can read the design system with the run's own token. Only the Pages
   deployment holds `pages: write` and `id-token: write`, and only Chromatic holds
-  `issues: write`,
-  which it needs to answer the comment that summoned it. Each lives in its own file so the
-  scopes are visible rather than inherited.
+  `issues: write` and `pull-requests: write`, which it needs to react to and answer the
+  comment that summoned it: the endpoints are issue ones, but the comment sits on a pull
+  request, and a token without the second was refused the reaction. Each lives in its own
+  file so the scopes are visible rather than inherited.
 - **The comment trigger.** `/chromatic` on a pull request starts a job holding the
   Chromatic token, and an `issue_comment` workflow always runs against the base
   repository with its secrets — including when the comment sits on a fork's pull request.
@@ -66,8 +67,9 @@ leaderboard, so there is nobody to cheat but themselves.
   *Whose code runs* is the head repository: a
   cross-repository head is refused outright, because `just sync` would otherwise run that
   fork's install scripts beside the token, and a person deciding to type the word is not
-  isolation. Both are settled in a job that checks nothing out and holds no secret, and
-  the publishing job does not start until they pass.
+  isolation. Both are settled in a job that checks nothing out and holds no Chromatic
+  token, only the run's own, which it needs to read the commenter's permission and the
+  pull request and to add the reaction; the publishing job does not start until they pass.
   What neither check does is make the head trustworthy. A head in this repository was
   pushed by someone holding write access, so the token sits inside that boundary and
   behind no narrower one; while `main` requires no review, the same person could land the
