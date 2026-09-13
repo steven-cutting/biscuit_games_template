@@ -36,8 +36,8 @@ These hold everywhere. Breaking one is a defect, not a trade-off.
    `eslint-plugin-svelte`.
 3. **Side effects sit behind a port.** Storage, randomness and the clock are
    reached through `src/lib/ports/`, each with an in-memory fake, and every
-   side effect this game adds gets a port there in the same shape; the device's
-   preferences and its keyboard are reached through the two ports
+   side effect this game adds gets a port there in the same shape; the
+   device's preferences and its keyboard are reached through the two ports
    `@steven-cutting/biscuit-games` exports, with the fakes it ships. Tests
    inject fakes; they never stub a global.
 4. **Every dependency is pinned to an exact version.** No `^`, no `~`, in
