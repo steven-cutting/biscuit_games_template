@@ -535,8 +535,13 @@ tests/test_specs.py ..                                                   [100%]
   not `ticket/t02-scripts` as the frontmatter says. The T01 and T09 worktrees are named
   the same way. Rename the branch before pushing if it must match the field.
 - T00's copies were already final; see above. No `cp` was run.
-- None in step 7: `tests/__init__.py` exists and `test_validators.py` imports
-  `from tests.helpers import ...`, so the body is the ticket's, verbatim.
+- One in step 7. `tests/__init__.py` exists and `test_validators.py` imports
+  `from tests.helpers import ...`, so the imports are the ticket's. The negative control
+  empties `docs/specs/` with `.rglob("*.allium")`, not the step's `.glob`, after review on
+  pull request 4: `run_allium.py`'s `_modules()` and allium itself walk the directory
+  recursively. With a copy of the seed module in `docs/specs/sub/`, `.glob` leaves that
+  copy behind and `run_allium.py check` exits 0 on it; `.rglob` removes both, and the
+  gate exits 1 with `resolved no specification under docs/specs/`.
 - `CHANGELOG.md` is not in the Files touched table and was not edited. The comment edit
   is to a managed file and reaches games on update; no seed file changed.
 

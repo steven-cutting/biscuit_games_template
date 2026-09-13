@@ -36,7 +36,9 @@ def test_gate_refuses_an_empty_specs_directory(git_render: Render) -> None:
     # The negative control: a gate that read nothing must not pass, or a
     # render whose seed module went missing would still be green above.
     _install(git_render)
-    for module in (git_render.path / "docs" / "specs").glob("*.allium"):
+    # Recursive, as the gate's own `_modules()` and allium's walk are: a nested
+    # module left behind would be checked, and the test would fail on exit 0.
+    for module in (git_render.path / "docs" / "specs").rglob("*.allium"):
         module.unlink()
     result = run_script(git_render, "run_allium.py", "check")
     assert result.returncode == 1, result.stdout + result.stderr
