@@ -49,9 +49,11 @@ relocking.
 
 2. Edit the exact version in `package.json` or `pyproject.toml`.
 3. Run `just lock`, then read the lockfile diff before accepting it.
-4. Run `just check`. A type-checker or linter upgrade usually surfaces new findings; fix
+4. Run `just sync`. `just lock` rewrites the lockfiles and installs nothing, and no check
+   installs `node_modules` for itself, so without this the gate runs the old versions.
+5. Run `just check`. A type-checker or linter upgrade usually surfaces new findings; fix
    them rather than pinning back, unless the finding is wrong for this project.
-5. If the change moved `playwright`, reinstall the browser with `just storybook-browsers`.
+6. If the change moved `playwright`, reinstall the browser with `just storybook-browsers`.
    The binary is versioned by that pin and is in neither lockfile — see
    [Work in the component workshop](work-in-the-component-workshop.md).
 
@@ -72,7 +74,8 @@ renders and the specifications it restates, so a bump is read before it is taken
    platform's repository has both that and a handover page naming every consumer-visible
    change — [The platform upstream](../project/platform.md) links them.
 3. Edit the exact version, run `just lock`, and read the lockfile diff: one dependency line
-   and one entry, and anything else is a stop-and-read.
+   and one entry, and anything else is a stop-and-read. Then run `just sync`, because
+   `just lock` installs nothing and every step below reads the installed package.
 4. Run `just frontend-coverage` before anything else. One gate fails by design here:
    `tests/platformSpecs.test.ts`, on a figure whose value moved or a restated clause whose
    wording did. Each failure is the moment somebody decides whether the platform's meaning

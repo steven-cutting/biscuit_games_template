@@ -18,8 +18,9 @@ requires: []
 | `just` | The task runner, and the only supported interface to the checks. |
 | A GitHub token with `read:packages` | The design system is installed from GitHub Packages, which authenticates every request. |
 
-Exact versions live in `package.json` (`engines`, `volta`) and in `.python-version`. A
-`volta` block is present, so a Volta user gets the right Node automatically.
+`package.json` states the supported ranges in `engines` and the exact Node and npm in
+`volta`, so a Volta user gets the right Node automatically. `.python-version` names the
+Python that `uv` runs the tooling on.
 
 ## First run
 
@@ -92,8 +93,8 @@ just fix       # formats and applies the safe automatic repairs
 just check     # the whole gate, read-only
 ```
 
-`just fix` is the only command that is allowed to modify files. Every check is read-only,
-and `just check` proves it by comparing the worktree before and after each recipe.
+Of the two, only `just fix` modifies files. Every check is read-only, and `just check`
+proves it by comparing the worktree before and after each recipe.
 
 ## Keeping the workspace current
 

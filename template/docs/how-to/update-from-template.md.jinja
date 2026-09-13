@@ -19,7 +19,7 @@ it; the files rendered here carry no such syntax.
 
 ## What an update touches, and what it never does
 
-Every file the template renders is one of two kinds.
+Every file the template renders is one of three kinds.
 
 **Seed files are this game's.** The template writes them once, on the first render, and an
 update never merges, recreates or deletes one: rewrite them freely, and one you delete
@@ -59,6 +59,10 @@ takes them under "This game"; `AGENTS.md` takes deviations at the end of Provena
 additions at the end of the relevant block. Reordering any of these is what brings the
 markers back.
 
+**`.copier-answers.yml` is Copier's.** It is neither merged like a managed file nor left
+alone like a seed: every update rewrites it whole, from the answers and the template
+version that update rendered, and the next update reads it.
+
 ## Take an update
 
 1. Commit everything. Copier refuses a dirty worktree.
@@ -75,18 +79,20 @@ markers back.
 3. Resolve every marker. They read `<<<<<<< before updating` and `>>>>>>> after updating`;
    the template's side is a suggestion, and this game's behaviour wins where the two
    genuinely disagree. The hook gate refuses a commit that still carries one.
-4. Regenerate what is generated, repair formatting, and run the whole gate:
+4. Regenerate what is generated, install it, repair formatting, and run the whole gate:
 
    ```console
    just lock
+   just sync
    just fix
    just check
    ```
 
    `just lock` relocks both lockfiles against the manifests the update may have moved;
-   read the lockfile diff before accepting it.
-5. Commit the result as one change, `.copier-answers.yml` included. Copier rewrites that
-   file on every update, and the next update reads it.
+   read the lockfile diff before accepting it. It installs nothing, so `just sync` installs
+   what the lockfiles now say before `just fix` and `just check` read it.
+5. Commit the result as one change, `.copier-answers.yml` included: the next update reads
+   it.
 
 Never edit `.copier-answers.yml` by hand, with one exception: `_src_path`, when a game
 rendered from a local clone moves to the template's GitHub address.

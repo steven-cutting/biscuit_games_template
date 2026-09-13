@@ -22,12 +22,19 @@ push that should deploy.
 
 1. In the repository settings, under Pages, set the source to **GitHub Actions**. The
    workflow cannot do this for itself.
-2. Confirm the `github-pages` environment exists. The deploy job references it, and GitHub
-   creates it on the first run.
+2. Grant this repository read access on the `@steven-cutting/biscuit-games` package, so
+   that the build job's own token can install it. It is a setting on the package, not on
+   either repository: on the package's page, open **Package settings**, choose
+   **Add repository** under **Manage Actions access**, search for this repository,
+   `{{ repository }}`, and give it the **Read** role.
 
-Until step 1 is done, the build job succeeds and uploads its artefact but the deploy job
-fails with `Failed to create deployment (status: 404)`, even though the workflow itself is
-correct.
+The deploy job names a `github-pages` environment, which needs no setup: GitHub creates it
+on the first run that reaches that job.
+
+Until step 2 is done, the build job fails at `npm ci` with `404 Not Found` for the package
+and the deploy job never starts. Until step 1 is done, the build job succeeds and uploads
+its artefact but the deploy job fails with `Failed to create deployment (status: 404)`,
+even though the workflow itself is correct.
 
 ## Where the site is served from
 

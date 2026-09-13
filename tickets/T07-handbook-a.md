@@ -897,7 +897,7 @@ passed and 2 skipped.
 - `docs/how-to/update-from-template.md`: step 3 keeps each marker name whole on one line
   (the ticket's wrap split `>>>>>>> after updating` over a line break), so a search finds
   either; no line starts with a marker, so `check-merge-conflict` does not read the page as
-  a conflict. The regenerate step is the ticket's three-line `console` block, not the
+  a conflict. The regenerate step is a `console` block, four lines after review, not the
   one-liner the acceptance criterion quotes, which `_message_after_update` carries.
 - `docs/how-to/work-with-the-specs.md`: P 105-144 became three paragraphs, the third
   holding both the `.created(...)` lesson and the 3.6.1 alias lesson. The sentence that
@@ -910,8 +910,27 @@ passed and 2 skipped.
   ten managed pages) and one Seed bullet (the four seed files that changed), because
   `AGENTS.md` asks for a note on every seed change and T09 set the precedent.
 - Prose an edit touched was rewrapped near 90 columns. Untouched P lines keep P's
-  wrapping, including the workshop page's one long line under "Switch theme, contrast and
-  motion".
+  wrapping.
+- After review on PR 10, beyond the ticket's exact content:
+  - `deploy-to-github-pages.md`: step 2 is the package read grant that
+    `_message_after_copy` and decision 0010 ask for before the first push, in place of
+    confirming the `github-pages` environment, which GitHub creates on the first run. The
+    failure paragraph names what each missing setting does.
+  - `maintain-dependencies.md` (both procedures) and `update-from-template.md`: `just sync`
+    follows `just lock` before any check. `just lock` writes the lockfiles only, and no
+    recipe under `just check` installs `node_modules`; `uv run --frozen` syncs the Python
+    environment by itself.
+  - `update-from-template.md`: three kinds of file, not two. `.copier-answers.yml` is
+    Copier's and is rewritten whole on every update.
+  - `README.md` and `develop-locally.md`: `just fix` is the one of the pair that modifies
+    files, not the only command that does; `just lock` and `just format` write too.
+  - `terminology.md`: a recipe is the only supported interface to the checks, as
+    `AGENTS.md` says, rather than the only way to run anything.
+  - `work-with-the-specs.md`: the recipes do not take the exit code as their verdict, but
+    `scripts/run_allium.py` does read it.
+  - `develop-locally.md`: `engines` states ranges; `volta` and `.python-version` pin.
+  - `work-in-the-component-workshop.md`: four toolbar globals, not three, and the port
+    fakes rule no longer says `tests/` uses the platform package's two.
 
 ### Handed back
 
@@ -931,11 +950,10 @@ passed and 2 skipped.
 - For the next edit of CONVENTIONS.md §8: row 4 calls platform.md's outbound table
   thirteen rows, where P has sixteen and all sixteen shipped; row 6 drops a `BASE_PATH`
   line the tutorial never had.
-- For T12 or C03: the deploy page's one-time setup, as the ticket's exact content, names
-  the Pages source and the environment but not the package read grant that
-  `_message_after_copy` asks for before the first push. By CONVENTIONS.md §11's reasoning
-  the build job's install is refused without it. Adding that step is a managed-page
-  change; unverified here.
+- **T00 follow-up, `_message_after_update`.** The update page's step 4 now runs
+  `just sync` between `just lock` and `just fix`. `copier.yml`'s `_message_after_update`
+  and CONVENTIONS.md §10 item 5 still give `just lock && just fix && just check`, and so
+  does decision 0009 (T09's). No lane edits `copier.yml`.
 
 ### Open points settled
 

@@ -76,12 +76,13 @@ worktree needs `just install-allium` before `just lint` or `just check` will pas
 clean on an untouched checkout: every module reports an empty `diagnostics` array and an
 empty `findings` array, and both recipes print one JSON block per module and exit 0.
 
-Neither recipe reads the exit code, because neither exit code carries what this project
-means by clean. `allium check` exits 0 on an `info` diagnostic — `allium.field.unused` is
+Neither recipe takes the exit code as its verdict, because neither exit code carries what
+this project means by clean. `allium check` exits 0 on an `info` diagnostic — `allium.field.unused` is
 one, so the waiver the modules used to carry for it was never what kept the recipe green —
 and `allium analyse` keys its status on findings alone, so a module that does not parse
 passes it with the `error` sitting in the JSON it has just printed.
-`scripts/run_allium.py` reads the arrays instead.
+`scripts/run_allium.py` reads the arrays instead, and treats a non-zero status beside an
+empty report as a fault in the tool, never as a pass.
 
 Either recipe reporting anything at all is therefore a regression in the change under
 review. Fix it at the root. A finding cannot be waived. A diagnostic can, but only when the

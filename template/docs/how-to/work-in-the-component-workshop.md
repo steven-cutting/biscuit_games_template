@@ -103,8 +103,9 @@ Four rules on top of the format:
    coverage floor is still earned there.
 3. **Inject port fakes, never touch a browser global.** The story run is a real browser, so
    `localStorage` and the clipboard exist and would work. That is exactly why the rule
-   holds: construct the component against the fakes in `src/lib/ports/` and the two the
-   platform package ships, `createFakePreferences` and `createFakeKeys`, as `tests/` does.
+   holds: construct the component against the fakes in `src/lib/ports/`, which `tests/`
+   uses too, and the two the platform package ships, `createFakePreferences` and
+   `createFakeKeys`.
 4. **Reach for a play function when the guarantee is about interaction.** A story that tabs
    to a key and activates it is executable evidence for `FullyKeyboardOperable` in a way a
    rendered picture is not.
@@ -115,10 +116,12 @@ which receives the args and the story context. The addon's own documentation cov
 
 ## Switch theme, contrast and motion
 
-The toolbar carries three globals. Theme and high contrast set `data-theme` and
+The toolbar carries four globals. Theme and high contrast set `data-theme` and
 `data-high-contrast` on the preview's root element, which is what the design system's
-stylesheet keys on, so a story sees the tokens the application will. A story pins a value with a `globals` prop,
-which beats the toolbar and disables the matching control.
+stylesheet keys on, so a story sees the tokens the application will. The animations
+setting and reduced motion decide `data-animations` between them, and the device wins: the
+attribute is written only while animations are on and motion is not reduced. A story pins
+a value with a `globals` prop, which beats the toolbar and disables the matching control.
 
 Reduced motion is a simulation, labelled as one: it freezes declarative motion in the
 preview but cannot make the browser report the preference, and a fresh game has none.
