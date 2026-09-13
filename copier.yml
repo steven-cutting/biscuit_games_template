@@ -1,0 +1,246 @@
+_min_copier_version: "9.18.2"
+_subdirectory: template
+_templates_suffix: .jinja
+_answers_file: .copier-answers.yml
+_envops:
+  keep_trailing_newline: true
+  undefined: jinja2.StrictUndefined
+
+# With `_subdirectory` set, Copier adds no default exclusions (copier/_template.py,
+# `exclude`), so the housekeeping patterns are restated here.
+_exclude:
+  - .DS_Store
+  - Thumbs.db
+  - "*.py[co]"
+  - __pycache__
+  - .pytest_cache
+  - .ruff_cache
+  # Seed paths: rendered by `copier copy`, never by `copier update`. The current
+  # operation reaches this list (copier/_main.py `match_exclude`) and nowhere
+  # else, which is what makes a seed copy-only: an update neither merges,
+  # recreates nor deletes one. One YAML entry, split on line breaks by Copier.
+  # Leading slashes anchor the root files so that docs/README.md and
+  # docs/decisions/README.md are matched only where intended.
+  # This block and `_skip_if_exists` must stay identical; tests/test_render.py
+  # asserts it.
+  - |-
+    {%- if _copier_operation == 'update' %}
+    /README.md
+    /CHANGELOG.md
+    /SECURITY.md
+    /docs/project/purpose-and-scope.md
+    /docs/project/terminology.md
+    /docs/decisions/
+    /docs/specs/
+    /src/lib/brand.ts
+    /src/lib/components/
+    /src/routes/+page.svelte
+    /stories/
+    /tests/restated.ts
+    /tests/lockup.test.ts
+    /tests/route.test.ts
+    {%- endif %}
+
+# The same list, for `copier recopy` (a copy operation that would otherwise
+# overwrite the game's files). Matched before `--overwrite` is consulted. It also
+# means a first `copier copy` into a directory already holding one of these files
+# keeps that file: delete a stub README.md first.
+_skip_if_exists:
+  - /README.md
+  - /CHANGELOG.md
+  - /SECURITY.md
+  - /docs/project/purpose-and-scope.md
+  - /docs/project/terminology.md
+  - /docs/decisions/
+  - /docs/specs/
+  - /src/lib/brand.ts
+  - /src/lib/components/
+  - /src/routes/+page.svelte
+  - /stories/
+  - /tests/restated.ts
+  - /tests/lockup.test.ts
+  - /tests/route.test.ts
+
+_message_after_copy: |-
+  {{ game_name }} is rendered. Nothing ran, no lockfile exists and Git is
+  untouched. In order:
+
+    1. Put a GitHub token carrying read:packages in ~/.npmrc as
+         //npm.pkg.github.com/:_authToken=<your token>
+       {{ hub_package }} is read from GitHub Packages, which refuses an
+       anonymous read.
+    2. git init -b main                   (skip inside an existing clone)
+    3. just initialize                    (lockfiles, npm ci, Chromium, allium, hooks)
+    4. just check
+    5. Commit everything, .copier-answers.yml and both lockfiles included:
+       copier update reads the answers file.
+
+  Before the first push: grant {{ repository }} read access on the
+  {{ hub_package }} package (a setting on the package, not on either
+  repository) so CI's own token can install it, and set the Pages source to
+  GitHub Actions so pages.yml can publish to {{ pages_url }}.
+
+_message_after_update: |-
+  Template {{ _copier_answers._commit | default('(untagged)') }} applied. Resolve
+  every "<<<<<<< before updating" marker, then run
+    just lock && just fix && just check
+  and commit the result together with .copier-answers.yml. Seed files were not
+  touched; docs/how-to/update-from-template.md lists them.
+
+# ---------------------------------------------------------------- identity ---
+
+# The free-text answers reach Markdown, TOML, JSON and a single-quoted
+# TypeScript string, and from there Svelte markup. `{` and `}` cannot be escaped
+# out of every one of those at once and are rejected; everything else is escaped
+# at the point of use with the `*_escaped` (TOML/JSON) and `*_ts` (TypeScript)
+# variants. No `.svelte` file is a Jinja template: the name and the description
+# reach the page through `src/lib/brand.ts`.
+
+game_name:
+  type: str
+  help: The game's display name, as the document title and the README heading spell it.
+  placeholder: Tic Tac Toe Beans
+  validator: |-
+    {% set value = game_name | trim %}
+    {% if value | length < 2 or value | length > 40 %}
+    Enter between 2 and 40 non-whitespace characters.
+    {% elif game_name | regex_search('[\\x00-\\x1f\\x7f]') %}
+    Remove the control characters. This is a single-line value, and a raw control
+    character is not legal inside the generated TOML and JSON strings.
+    {% elif '{' in game_name or '}' in game_name %}
+    Remove the braces. They open and close expressions in the generated Svelte
+    markup, and no escaping turns them back into ordinary text.
+    {% elif not (value | regex_search('[A-Za-z]')) %}
+    Include at least one letter: the package name and the specification module
+    are named after this value, and both must start with a letter.
+    {% endif %}
+
+game_slug:
+  type: str
+  help: Repository-style identifier; names the npm package, the tooling project and the root specification module.
+  default: >-
+    {{ game_name | trim | lower | regex_replace('[^a-z0-9]+', '_') | trim('_')
+       | regex_replace('^[0-9_]+', '') }}
+  validator: >-
+    {% if not (game_slug | regex_search('^[a-z][a-z0-9]*(_[a-z0-9]+)*$')) %}
+    Use lowercase letters and digits separated by single underscores, starting with a letter.
+    {% endif %}
+
+description:
+  type: str
+  help: One sentence saying what the game is; used in the README, the page metadata and AGENTS.md.
+  placeholder: A tic-tac-toe game played with beans.
+  validator: |-
+    {% set value = description | trim %}
+    {% if value | length < 10 or value | length > 200 %}
+    Enter between 10 and 200 characters.
+    {% elif description | regex_search('[\\x00-\\x1f\\x7f]') %}
+    Remove the control characters. This is a single-line value, and a raw control
+    character is not legal inside the generated TOML and JSON strings.
+    {% elif '{' in description or '}' in description %}
+    Remove the braces. They open and close expressions in the generated Svelte
+    markup, and no escaping turns them back into ordinary text.
+    {% endif %}
+
+repository:
+  type: str
+  help: GitHub repository as owner/name. Decides the Pages address the handbook states.
+  default: "steven-cutting/{{ game_slug }}"
+  validator: |-
+    {% set parts = repository.split('/') %}
+    {% if parts | length != 2 or not (repository | regex_search('^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$')) %}
+    Enter owner/name: a GitHub account name, one slash, and a repository name of
+    letters, digits, dots, hyphens and underscores.
+    {% elif parts[0].startswith('-') or parts[0].endswith('-') or '--' in parts[0] %}
+    A GitHub account name cannot start or end with a hyphen or contain two in a row.
+    {% elif parts[1] in ['.', '..'] or parts[1].endswith('.git') %}
+    That repository name is not one GitHub accepts.
+    {% endif %}
+
+# ---------------------------------------------------------------- computed ---
+
+repository_owner:
+  type: str
+  default: "{{ repository.split('/')[0] }}"
+  when: false
+
+repository_name:
+  type: str
+  default: "{{ repository.split('/')[1] }}"
+  when: false
+
+# Decision 2 in §1: a project Pages site, built with BASE_PATH=/<repo> and
+# served at <owner>.github.io/<repo>/. GitHub lowercases the account in the host.
+base_path:
+  type: str
+  default: "/{{ repository_name }}"
+  when: false
+
+repository_url:
+  type: str
+  default: "https://github.com/{{ repository }}"
+  when: false
+
+pages_url:
+  type: str
+  default: "https://{{ repository_owner | lower }}.github.io{{ base_path }}/"
+  when: false
+
+# The words after "biscuit games / " in the lockup, lowercase as the platform's
+# own words are. A game that wants otherwise edits src/lib/brand.ts, which is its.
+game_lockup:
+  type: str
+  default: "{{ game_name | trim | lower }}"
+  when: false
+
+# For a TOML basic string and a JSON string alike: escape the backslash and the
+# double quote. Validators already excluded control characters.
+game_name_escaped:
+  type: str
+  default: >-
+    {{ game_name | trim | replace('\\', '\\\\') | replace('"', '\\"') }}
+  when: false
+
+# For a single-quoted TypeScript string literal in src/lib/brand.ts, the only
+# road an answer takes into Svelte markup.
+game_title_ts:
+  type: str
+  default: >-
+    {{ game_name | trim | replace('\\', '\\\\') | replace("'", "\\'") }}
+  when: false
+
+game_lockup_ts:
+  type: str
+  default: >-
+    {{ game_lockup | replace('\\', '\\\\') | replace("'", "\\'") }}
+  when: false
+
+description_ts:
+  type: str
+  default: >-
+    {{ description | trim | replace('\\', '\\\\') | replace("'", "\\'") }}
+  when: false
+
+# The platform. The scope is the hub's, fixed by the package name. The version is
+# a template pin: the template is tested against exactly one hub release, and
+# moving it is a template release. A game that bumps package.json locally keeps
+# the bump through `copier update` (identical same-hunk changes merge silently).
+hub_scope:
+  type: str
+  default: "@steven-cutting"
+  when: false
+
+hub_package:
+  type: str
+  default: "{{ hub_scope }}/biscuit-games"
+  when: false
+
+hub_package_version:
+  type: str
+  default: 1.0.0
+  when: false
+
+template_url:
+  type: str
+  default: https://github.com/steven-cutting/biscuit_games_template
+  when: false

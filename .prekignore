@@ -1,0 +1,5 @@
+# template/ carries the game's own .pre-commit-config.yaml, which prek would
+# otherwise discover as a nested workspace project and run inside template/,
+# where nothing it needs exists. Ignored for discovery only: the root hooks
+# still read every file under template/.
+template/

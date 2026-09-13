@@ -1,0 +1,16 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.lycheecache
+
+# Scratch, and where `just render` lands by default.
+ai_tmp/
+
+# Assistant state written on first use.
+.claude/settings.local.json
+.codex/settings.local.json

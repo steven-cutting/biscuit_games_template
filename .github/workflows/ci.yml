@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    # Quoted because a branch named `true`, `false`, `null`, `on`, or `1.0` is
+    # valid to Git but is not a string to a YAML 1.1 parser.
+    branches: ['main']
+  schedule:
+    # Weekly. A render's first run depends on a registry, a browser download
+    # and a hub package none of which this repository controls, so a green
+    # main is re-proved without a change here.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Supersede a pull request's run; never a main or scheduled one.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  fast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The update round trip renders HEAD~1 and the latest tag, and copier
+          # reads `git describe`; a shallow clone has none of that.
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: 0.11.18
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv python install 3.14
+      - run: uv tool install rust-just==1.51.0
+      - run: just sync
+      - run: just lock-check
+      - run: just lint
+      - run: just typecheck
+      - run: just test
+        env:
+          # The one download in the fast suite: the pinned allium, checksummed.
+          BISCUIT_TEMPLATE_NETWORK: '1'

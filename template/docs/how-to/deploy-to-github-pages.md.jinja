@@ -1,0 +1,15 @@
+---
+title: "Deploy to GitHub Pages"
+kind: "how-to"
+audience: [maintainer, operator, agent]
+canonical_for: [deployment_procedure]
+requires: []
+---
+
+# Deploy to GitHub Pages
+
+How this game reaches `{{ pages_url }}`. It is a project Pages site: `pages.yml` builds
+it with `BASE_PATH={{ base_path }}`, read from the repository name, and uploads the
+`build/` directory. The page covers the one-time setup of the Pages source and the
+package read grant, what a push to `main` triggers, how to confirm a deployment, and how
+to roll one back.
