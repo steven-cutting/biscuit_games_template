@@ -1,7 +1,7 @@
 ---
 id: T01
 title: "Toolchain configs: every root dotfile and config the render ships"
-status: open
+status: done
 depends_on: [T00]
 parallel_with: [T02, T03, T04, T05, T06, T07, T08, T09]
 branch: ticket/t01-toolchain-configs
@@ -484,18 +484,211 @@ fails at `npm install --package-lock-only`; quote that error in the hand-back no
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### What was verified, and how
 
-- What was verified and how: the `just check` summary line, the source-equality block
-  (which `cmp` lines printed nothing, the three `diff` hunks), the residue grep, and the
-  render block with its outputs, or the exact npm error and the statement that the render
-  check is carried to T10's `test_full`.
-- What deviated from the ticket and why (a line number that had moved, a file that
-  needed a change the table does not name, a formatting fix `initialize.sh` forced).
-- What was handed back to another ticket: the `GAME_EDITED` comparison in Open points
-  (T00 follow-up on `main`); any `just lint` or `just frontend-static` failure on a file
-  outside the table, with the lane that owns it; anything else.
-- Which open points were settled, and how.
+Both clones were at their pinned commits (`git rev-parse --short HEAD` printed `0a46a48`
+and `09b4894`). Before any edit, `just sync && just test` printed `27 passed`. Every
+command below ran on the edited working tree; output is quoted, and each elision is
+marked with square brackets.
+
+```text
+$ just check
+uv lock --check
+Resolved 33 packages in 3ms
+uv run --frozen prek run --all-files
+[18 hook lines, every one ending Passed]
+uv run --frozen mypy
+Success: no issues found in 6 source files
+uv run --frozen pytest "$@"
+collected 27 items
+
+tests/test_render.py .......................                             [ 85%]
+tests/test_validators.py ....                                            [100%]
+
+======================= 27 passed, 16 warnings in 10.66s =======================
+
+$ just test tests/test_render.py -v
+tests/test_render.py::test_inventory_matches_classification PASSED       [  4%]
+tests/test_render.py::test_verbatim_files_are_byte_identical PASSED      [  8%]
+tests/test_render.py::test_rendered_jinja_files_carry_no_delimiter PASSED [ 13%]
+tests/test_render.py::test_no_poodl_outside_provenance PASSED            [ 17%]
+tests/test_render.py::test_answers_file_and_provenance PASSED            [ 21%]
+tests/test_render.py::test_no_lockfiles_shipped PASSED                   [ 26%]
+tests/test_render.py::test_pins_agree PASSED                             [ 30%]
+tests/test_render.py::test_managed_pages_link_only_to_stable_pages PASSED [ 34%]
+[the fourteen refused-answer cases and the accepted-punctuation case, every one PASSED]
+======================= 23 passed, 16 warnings in 10.43s =======================
+```
+
+The sixteen warnings are copier's `DirtyLocalWarning: Dirty template changes included
+automatically.`, raised because the edits were not yet committed.
+
+Source equality, the Verification block run in bash: all nine verbatim `cmp` lines, the
+seven `sed` drops, `package.json.jinja` and `eslint.config.js` printed nothing. The
+three `diff`s:
+
+```text
+$ diff "$P/.prettierignore" template/.prettierignore
+6d5
+< site
+14,16d12
+< # Word lists are data, one word per line.
+< src/lib/data
+<
+20a17,21
+>
+> # Copier owns the answers file and rewrites it on every `copier update`.
+> # Prettier would reformat YAML it does not own, so without this line
+> # `prettier --check` and the regenerated file fight after every update.
+> .copier-answers.yml
+$ diff "$P/svelte.config.js" template/svelte.config.js
+5,6c5,6
+[Poodl's two lines, then step 6's first sentence]
+8,14c8,13
+[Poodl's seven lines naming /poodl and the domain, then step 6's second paragraph]
+$ diff "$H/pyproject.toml" template/pyproject.toml.jinja
+2c2
+< name = "biscuit-games-tooling"
+---
+> name = "{{ game_slug }}-tooling"
+4c4
+< description = "Repository tooling for Biscuit Games. Not the site; see package.json for that."
+---
+> description = "Repository tooling for {{ game_name_escaped }}. Not the application; see package.json for that."
+15c15
+< # Biscuit Games ships no Python package. This project exists so `uv run --frozen`
+---
+> # This game ships no Python package. This project exists so `uv run --frozen`
+17c17
+< # docs/decisions/0006-python-toolchain.md.
+---
+> # docs/decisions/0004-python-toolchain.md.
+```
+
+`wc -l` gives `template/.gitattributes` 4, `template/Justfile` 164 and
+`template/eslint.config.js` 46; `eslint.config.js` has no `rules:`. The residue grep
+printed nothing and exited 1. `grep -l -s '{{' template/*.jinja template/.[a-z]*` lists
+`package.json.jinja` and `pyproject.toml.jinja` and, outside this ticket, the answers
+file template, `AGENTS.md.jinja`, `CHANGELOG.md.jinja` and `README.md.jinja`.
+`package.json.jinja` carries `{{ game_slug }}` once; `pyproject.toml.jinja` carries
+`{{ game_slug }}` and `{{ game_name_escaped }}` once each; the hub pin is
+`"@steven-cutting/biscuit-games": "1.0.0"`.
+
+The render, with a `read:packages` token in `~/.npmrc`:
+
+```text
+$ just render ai_tmp/t01-render
+Rendered into ai_tmp/t01-render
+$ git init -q -b main && git add -A && git -c user.name=render -c user.email=render@example.invalid commit -q -m 'Rendered from the template'
+$ just initialize
+[uv lock, uv sync, npm install --package-lock-only, npm ci: added 377 packages, playwright install chromium]
+installed allium 3.6.1 at [ai_tmp/t01-render]/.tools/bin/allium
+74 files left unchanged
+
+> tic_tac_toe_beans@0.1.0 lint:fix
+> svelte-kit sync && eslint . --fix && prettier --write .
+
+[ai_tmp/t01-render]/stories/Lockup.stories.svelte
+  83:31  error  Invalid type "320" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+✖ 1 problem (1 error, 0 warnings)
+
+error: recipe `initialize` failed on line 15 with exit code 1
+$ git status --porcelain
+?? package-lock.json
+?? uv.lock
+$ just lint
+uv run --frozen prek run --all-files
+Ruff lint................................................................Passed
+Ruff format check........................................................Passed
+ESLint and Prettier......................................................Failed
+- hook id: eslint
+- exit code: 1
+[the same Lockup.stories.svelte 83:31 error]
+Documentation contract...................................................Passed
+Agent instruction contract...............................................Passed
+Specification diagnostics................................................Passed
+Specification analysis...................................................Passed
+[the sixteen builtin and remote hooks, every one ending Passed]
+error: recipe `lint` failed on line 89 with exit code 1
+$ just frontend-static
+npm run lint
+[the same Lockup.stories.svelte 83:31 error]
+error: recipe `frontend-static` failed on line 92 with exit code 1
+```
+
+`initialize.sh` stopped at ESLint, so its `prettier --write .` and `install-hooks` never
+ran, and the `git status` above proves only that ruff and `eslint --fix` rewrote nothing.
+Run in the render afterwards to cover the rest:
+
+```text
+$ npx eslint .
+[only the Lockup.stories.svelte 83:31 error]
+$ npx prettier --list-different .
+tests/platformSpecs.test.ts
+$ npm run check
+[...] ERROR "src/lib/components/Lockup.svelte" 20:11 "Type 'string' is not assignable to type 'never'."
+[...] COMPLETED 806 FILES 1 ERRORS 0 WARNINGS 1 FILES_WITH_PROBLEMS
+```
+
+No file in the table is flagged by ESLint, would be rewritten by Prettier, or fails any
+hook in the render. The render half of the acceptance criteria is nonetheless not met as
+written: `just initialize`, `just lint` and `just frontend-static` each exit 1, on three
+files other lanes own (Handed back, below). T10's `test_full` and T11 run the same check
+once those land.
+
+### Deviations, and why
+
+- **Branch.** The work is on `T01-toolchain-configs`, the Supacode worktree's branch, as
+  T00's was `T00-foundation`, not on `ticket/t01-toolchain-configs`.
+- **Fifteen of the twenty-one stubs were already the designed files.** Every path was
+  still rewritten from its source with this ticket's commands, and those fifteen came
+  out byte-identical to T00's stubs. Six changed: `.markdownlint-cli2.jsonc`,
+  `lychee.toml` and `.prettierignore` still listed `site`; `eslint.config.js` still
+  ignored `dist/`; `svelte.config.js` carried T00's shorter comment; and
+  `pyproject.toml.jinja` wrapped line 15 differently and cited
+  `docs/decisions/0004-python-toolchain-in-a-frontend-repo.md`.
+- **`svelte.config.js` diffs as two hunks, not `4,15c4,14`.** `diff` keeps the unchanged
+  comment opener, bare-asterisk line and closer as context. The content is what step 6 says: `cmp <(sed -n
+  '1,3p;16,$p' "$P/svelte.config.js") <(sed -n '1,3p;15,$p' template/svelte.config.js)`
+  and `cmp` of template lines 4-14 against step 6's block both printed nothing.
+- **Steps 4, 6 and 8** were extracted from this file's fences by a script, not retyped.
+- **Step 3 under zsh with `noclobber`.** Each `sed ... > template/<file>` refused to
+  overwrite its stub (`file exists: template/.gitattributes`) and was rerun with `>|`.
+  The Verification block, run in bash, is unaffected.
+- **Files touched preamble.** It says §4 marks six of the nine `M†` files as plain `M`;
+  §4 as committed marks all nine `M†`, as Open points says. Nothing needed changing.
+
+### Handed back
+
+- **T05.** `stories/Lockup.stories.svelte` line 83 interpolates the number
+  `NARROWEST_SUPPORTED_WIDTH` into a template literal, which the hub's
+  `strictTypeChecked` refuses now that Poodl's `allowNumber` override is not carried (a
+  Non-goal of this ticket). T05 step 9's `FRAME_WIDTH` through `String()` removes it.
+  Until then `initialize.sh` aborts at `npm run lint:fix` in every render
+  (CONVENTIONS.md §13), and `just lint` and `just frontend-static` fail on it.
+- **T06.** `tests/platformSpecs.test.ts` is not Prettier-formatted: Prettier breaks the
+  `readdirSync(SPECS).filter(...).sort()` chain on line 85 and the three figure rows on
+  lines 95 and 97-99, which pass `printWidth` 100. `npm run lint` fails on it once the
+  ESLint error is gone, and `initialize.sh`'s `prettier --write .` would modify it.
+- **CONVENTIONS.md §0 and the hub, as T00 handed back.** `svelte-check` still reports
+  `src/lib/components/Lockup.svelte:20:11` against the published 1.0.0, so `npm run
+  check`, the second half of `just frontend-static`, fails until that is resolved.
+- **T00.** No follow-up: `GAME_EDITED` matches §5.
+
+### Open points settled
+
+- **`M†` in the inventory.** `GAME_EDITED` in `tests/inventory.py` equals the fourteen
+  paths §5 lists (a set comparison printed `14 14 True`).
+- **`just lint` inside a render.** With allium 3.6.1 installed by `just initialize`,
+  Documentation contract, Agent instruction contract, Specification diagnostics and
+  Specification analysis all pass on the other lanes' stubs. The one failing hook is
+  ESLint and Prettier, on T05's story.
+- **Prettier and Copier's answers file.** With the default answers, `npx prettier
+  --check --ignore-path /dev/null .copier-answers.yml` (both ignore files disabled, rather
+  than editing `.prettierignore`) printed `All matched files use Prettier code style!`.
+  T00's review showed that a description PyYAML quotes and folds is rewritten, so the
+  entry stays required.
 
 ## Open points
 

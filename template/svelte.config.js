@@ -2,11 +2,15 @@ import adapter from '@sveltejs/adapter-static';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /**
- * The game is a static site with no server, so every route is prerendered and
+ * This game is a static site with no server, so every route is prerendered and
  * the build output is a directory of files a host can serve as-is.
  *
- * `paths.base` places a project site under BASE_PATH, set by pages.yml from the
- * repository name; empty locally.
+ * `paths.base` is empty by default, which is what `just dev`, the unit tests
+ * and a local `just preview` see. GitHub Pages serves a project site beneath
+ * the repository's name, so `pages.yml` sets BASE_PATH to `/<repository name>`
+ * from the workflow event and the build lands under that path. Nothing here
+ * names the repository, so this file is the same in every game and a template
+ * update carries it unchanged. See decision 0010.
  */
 
 /** @type {import('@sveltejs/kit').Config} */
