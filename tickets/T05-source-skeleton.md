@@ -750,10 +750,9 @@ against a package that carries `product`.
   run, excluding `platformSpecs.test.ts`, was not needed: that file passes.
 - **The hub-HEAD run** is outside the steps. It changed nothing in either repository;
   `ai_tmp/render-hubhead` and the tarball in the scratchpad are throwaway.
-- **`CHANGELOG.md` untouched.** AGENTS.md asks for a seed change to be noted there, but
-  the tickets README and this ticket confine the edit to the table. T00's "Every seed
-  file, in the form CONVENTIONS §7 gives it or as a stub" under Seed covers the rewritten
-  story, and no game has been rendered yet.
+- **A `CHANGELOG.md` bullet under Seed**, though CONVENTIONS.md §11 limits a lane to its
+  listed files: `AGENTS.md` requires every seed change to be recorded there, review of the
+  pull request asked for it, and one bullet appended to the Seed list is the whole change.
 
 ### Handed back
 
