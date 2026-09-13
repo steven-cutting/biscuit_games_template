@@ -62,7 +62,8 @@ Read first, in this order:
   59-60 print "Ready. Next: just check." and that nothing was staged, committed,
   tagged or pushed.
 - P `scripts/run_project_check.py` (rendered verbatim): lines 18-30 name the eleven
-  recipes `just check` runs; lines 53-55 and 72-77 show the worktree snapshot includes
+  `RECIPES`, and line 106 runs `check-clean` after them, so `just check` runs twelve
+  gates; lines 53-55 and 72-77 show the worktree snapshot includes
   untracked, non-ignored files, so the two lockfiles are in it and must not change
   during a check; lines 106-108 pass the baseline to `check-clean`, so a dirty tree
   with untracked files passes as long as nothing changes; line 118 prints "All checks
@@ -183,7 +184,7 @@ Plus the `status:` line and the hand-back notes of `tickets/T11-integration.md`.
    annotated `vMAJOR.MINOR.PATCH` on `main` exactly as CONVENTIONS.md §10 requires;
    copier parses the leading `v`. Then run `just test` here once more:
    `tests/test_update.py` now finds `v0.1.0` as the latest tag and runs the pristine
-   update from it as well as from `HEAD~1`; both pass.
+   update from it as well as from `HEAD~2`; both pass.
 
 4. Prepare the consumer clone and settle the answers. Check the clone is as the
    Context describes (anything else is a question for the maintainer, not a thing to

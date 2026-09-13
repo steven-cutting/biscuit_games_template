@@ -215,7 +215,7 @@ lines 1-5 for the shell shape this repository's scripts take, and CONVENTIONS.md
    ```sh
    gh api "repos/$repo/branches/main/protection" --jq '[
      .required_status_checks.strict,
-     (.required_status_checks.contexts | sort | join(",")),
+     ([.required_status_checks.checks[]?.context] | sort | join(",")),
      .enforce_admins.enabled,
      .allow_force_pushes.enabled,
      .allow_deletions.enabled,
@@ -225,6 +225,11 @@ lines 1-5 for the shell shape this repository's scripts take, and CONVENTIONS.md
    ```
 
    Expected for a game: `false documents,frontend,stories false false false false false`.
+   The read takes the names from `checks`, the field the body below writes, rather than
+   from the deprecated `contexts`, which GitHub mirrors today (Poodl's protection returns
+   both) but which the idempotency check should not lean on. `[...checks[]?.context]`
+   also reads a protection without required checks (`required_status_checks: null`) as
+   an empty list, where `.contexts | sort` stops jq with "null cannot be sorted".
 
    The protection body, with one `checks` entry per name in `--checks`:
 
@@ -412,10 +417,10 @@ The settings, read back:
 
 ```sh
 gh api repos/steven-cutting/tic_tac_toe_beans/pages --jq .build_type
-gh api repos/steven-cutting/tic_tac_toe_beans/branches/main/protection --jq '[.required_status_checks.strict, .required_status_checks.contexts, .enforce_admins.enabled, .allow_force_pushes.enabled, .allow_deletions.enabled]'
+gh api repos/steven-cutting/tic_tac_toe_beans/branches/main/protection --jq '[.required_status_checks.strict, [.required_status_checks.checks[].context], .enforce_admins.enabled, .allow_force_pushes.enabled, .allow_deletions.enabled]'
 gh api repos/steven-cutting/tic_tac_toe_beans/private-vulnerability-reporting --jq .enabled
 gh secret list -R steven-cutting/tic_tac_toe_beans
-gh api repos/steven-cutting/biscuit_games_template/branches/main/protection --jq .required_status_checks.contexts
+gh api repos/steven-cutting/biscuit_games_template/branches/main/protection --jq '[.required_status_checks.checks[].context]'
 ```
 
 Expected: `workflow`; `[false,["frontend","documents","stories"],false,false,false]`

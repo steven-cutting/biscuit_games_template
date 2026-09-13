@@ -250,16 +250,31 @@ managed files by three-way merge, a seed is never touched, a game-added file is 
 touched, and the game's own entries at the end of `docs/manifest.yml` and
 `docs/README.md` survive because they sit in a different hunk from the template's.
 
-Two mechanics the code depends on:
+Three mechanics the code depends on:
 
 - Both refs must live in one `_src_path` (`copier/_subproject.py` 73-81 rebuilds the old
   template from the answers file), and no test may commit to or tag the real repository.
   So the fixture clones the repository into a temporary directory and, when the worktree
   is dirty, folds the uncommitted tree into a draft commit in the clone only, which is
-  copier's own trick (`copier/_vcs.py` 401-420). `HEAD~1` in CI is `main` on a pull
-  request (HEAD is the merge commit) and the previous `main` on a push; locally with a
-  dirty tree it is the committed HEAD, so the test reads "does my uncommitted change
-  update cleanly from what is committed".
+  copier's own trick (`copier/_vcs.py` 401-420).
+- The update must carry a template change, or it proves nothing. A commit that leaves
+  `template/` alone (this ticket's own, which touches only `tests/` and `ci.yml`)
+  renders the same tree at both refs, and after T11 a clean HEAD at `v0.1.0` would make
+  the `latest-tag` round trip a no-op. So, after the two-commit skip and never before
+  it (the skip counts real commits, which is what guarantees `HEAD~2` exists), the
+  fixture makes one synthetic commit in the clone: `TEMPLATE_CHANGE` appended to
+  `template/docs/reference/testing.md` (managed, not game-edited) and `MAP_CHANGE`
+  inserted after the H1 of `template/docs/README.md.jinja` (game-edited, at the far end
+  from `## This game`, so the template's change and the game's bottom-append are
+  different hunks of one three-way merge). The commit exists only in the throwaway
+  clone: this ticket still edits nothing under `template/` (Non-goals), and no commit
+  or tag reaches the real repository. Both strings are plain sentences with no Jinja
+  delimiter, link or forbidden token, so the render tests cannot trip on them. The
+  update target is `HEAD`, the synthetic commit; the old refs are the latest tag and
+  `HEAD~2`, the real commit below the tree under test. `HEAD~2` in CI is `main` on a
+  pull request (the clone's `HEAD~1` is the merge commit) and the previous `main` on a
+  push; locally with a dirty tree it is the committed HEAD, so the test reads "does my
+  uncommitted change, plus a template change, update cleanly from what is committed".
 - The clone must end with a populated, clean working tree. A `--no-checkout` clone has an
   empty one, and after the draft commit its index already matches HEAD, so a plain
   `git checkout HEAD` writes nothing and `git status` then reports every file deleted.
@@ -280,7 +295,7 @@ import pytest
 
 from tests.conftest import DEFAULT_ANSWERS, TEMPLATE_ROOT
 from tests.helpers import Render, commit_all, git, render_template, run_script_in_process
-from tests.inventory import MANAGED, SEED
+from tests.inventory import GAME_EDITED, MANAGED, SEED
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -288,6 +303,9 @@ if TYPE_CHECKING:
 MARKERS = (b"<<<<<<< before updating", b">>>>>>> after updating")
 SLUG = DEFAULT_ANSWERS["game_slug"]
 IDENTITY = ("-c", "user.name=template-tests", "-c", "user.email=tests@example.invalid")
+TEMPLATE_CHANGE = "A template release changed this page after the game was rendered."
+MAP_CHANGE = "A template release changed this map after the game was rendered."
+SYNTHETIC = (("docs/reference/testing.md", TEMPLATE_CHANGE), ("docs/README.md", MAP_CHANGE))
 
 BEANS_PAGE = """---
 title: "Beans"
@@ -328,7 +346,18 @@ def template_clone(tmp_path_factory: pytest.TempPathFactory) -> Path:
         git(clone, *tree_of, *IDENTITY, "commit", "-q", "-m", "wip", "--no-verify")
     git(clone, "checkout", "-q", "-f", "HEAD")
     if int(git(clone, "rev-list", "--count", "HEAD")) < 2:
-        pytest.skip("the update round trip needs two commits")
+        pytest.skip("the update round trip needs two real commits")
+    assert "docs/README.md" in {str(path) for path in GAME_EDITED}
+    assert "docs/reference/testing.md" in {str(path) for path in MANAGED - GAME_EDITED}
+    page = clone / "template" / "docs" / "reference" / "testing.md"
+    text = page.read_text(encoding="utf-8").rstrip("\n") + "\n\n" + TEMPLATE_CHANGE + "\n"
+    page.write_text(text, encoding="utf-8")
+    docs_map = clone / "template" / "docs" / "README.md.jinja"
+    lines = docs_map.read_text(encoding="utf-8").splitlines(keepends=True)
+    heading = next(index for index, line in enumerate(lines) if line.startswith("# "))
+    lines.insert(heading + 2, MAP_CHANGE + "\n\n")
+    docs_map.write_text("".join(lines), encoding="utf-8")
+    git(clone, *IDENTITY, "commit", "-q", "-a", "-m", "synthetic template change", "--no-verify")
     return clone
 
 
@@ -355,6 +384,12 @@ def assert_no_conflicts(render: Render) -> None:
         assert path.suffix != ".rej", f"{path} was rejected by git apply"
         content = (render.path / path).read_bytes()
         assert not any(marker in content for marker in MARKERS), f"{path} carries markers"
+
+
+def assert_template_change(game: Render, *, arrived: bool) -> None:
+    """The synthetic commit's strings: absent at the old ref, present after the update."""
+    for path, sentence in SYNTHETIC:
+        assert (sentence in game.read(path)) is arrived, f"{path}: template change arrived is not {arrived}"
 
 
 def start_game(clone: Path, dest: Path, old_ref: str) -> Render:
@@ -392,14 +427,16 @@ def add_game_page(game: Render) -> None:
     readme.write_text(text.rstrip("\n") + "\n\n" + BEANS_LINK + "\n", encoding="utf-8")
 
 
-@pytest.mark.parametrize("old_ref", ["HEAD~1", "latest-tag"])
+@pytest.mark.parametrize("old_ref", ["HEAD~2", "latest-tag"])
 def test_pristine_update_equals_fresh_render(
     template_clone: Path, tmp_path: Path, old_ref: str
 ) -> None:
     game = start_game(template_clone, tmp_path / "game", resolve_ref(template_clone, old_ref))
+    assert_template_change(game, arrived=False)
     before = tree(game)
     update(game)
     assert_no_conflicts(game)
+    assert_template_change(game, arrived=True)
     after = tree(game)
     fresh = tree(render_template(template_clone, tmp_path / "fresh", DEFAULT_ANSWERS, vcs_ref="HEAD"))
     assert set(after) == set(fresh)
@@ -414,7 +451,8 @@ def test_pristine_update_equals_fresh_render(
 
 
 def test_update_keeps_game_work(template_clone: Path, tmp_path: Path) -> None:
-    game = start_game(template_clone, tmp_path / "game", "HEAD~1")
+    game = start_game(template_clone, tmp_path / "game", "HEAD~2")
+    assert_template_change(game, arrived=False)
     add_game_page(game)
     (game.path / "README.md").write_text(GAME_README, encoding="utf-8")
     module = game.path / "docs" / "specs" / f"{SLUG}.allium"
@@ -425,6 +463,7 @@ def test_update_keeps_game_work(template_clone: Path, tmp_path: Path) -> None:
     commit_all(game.path, "game work")
     update(game)
     assert_no_conflicts(game)
+    assert_template_change(game, arrived=True)
     fresh = render_template(template_clone, tmp_path / "fresh", DEFAULT_ANSWERS, vcs_ref="HEAD")
     assert game.read("docs/project/beans.md") == BEANS_PAGE
     assert game.read("README.md") == GAME_README
@@ -441,7 +480,10 @@ def test_update_keeps_game_work(template_clone: Path, tmp_path: Path) -> None:
     assert run_script_in_process(game, "validate_docs.py") == 0
 ```
 
-What a failure means, for the hand-back notes: a marker or a `.rej` file is a same-hunk
+What a failure means, for the hand-back notes: `assert_template_change(arrived=False)`
+failing means the synthetic commit did not happen or the old ref already carries it (look
+at the fixture's order); `arrived=True` failing means the update did not deliver a
+template change; a marker or a `.rej` file is a same-hunk
 collision; a `stale` entry is a managed file the update did not deliver; a `touched`
 entry is an update reaching a seed; a path in one of the two sets only is a seed added
 or removed between the refs, which the frozen inventory of CONVENTIONS.md §5 forbids
@@ -450,7 +492,7 @@ means a template change touched the last decision line, which is the collision t
 bottom-append convention exists to avoid.
 
 Check: `just test tests/test_update.py -v` reports
-`test_pristine_update_equals_fresh_render[HEAD~1] PASSED`,
+`test_pristine_update_equals_fresh_render[HEAD~2] PASSED`,
 `test_pristine_update_equals_fresh_render[latest-tag] SKIPPED` (no tag exists before
 T11) and `test_update_keeps_game_work PASSED`, in well under a minute.
 
@@ -612,7 +654,7 @@ authorised action occurs in this ticket.
       `test`.
 - [ ] `tests/test_questionnaire.py`: 15 passed; the fourteen refusals are the values in
       step 3, each matched on `Validation error for question '<name>'`.
-- [ ] `tests/test_update.py`: `test_pristine_update_equals_fresh_render[HEAD~1]` and
+- [ ] `tests/test_update.py`: `test_pristine_update_equals_fresh_render[HEAD~2]` and
       `test_update_keeps_game_work` passed; `[latest-tag]` skipped with the reason
       "no v* tag yet"; no tag or commit was made in the real repository (`git tag` in
       the worktree lists nothing new; `git log` shows only the ticket's commits).

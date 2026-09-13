@@ -528,7 +528,7 @@ Poodl" (`R` is `steven-cutting/c01-throwaway`):
 
 ```sh
 gh api "repos/$R/commits/$(git rev-parse main)/check-runs" --jq '.check_runs[] | "\(.name): \(.conclusion)"'
-gh api "repos/$R/branches/main/protection" --jq '.required_status_checks.contexts'
+gh api "repos/$R/branches/main/protection" --jq '[.required_status_checks.checks[].context]'
 gh run list --repo "$R" --workflow Chromatic --limit 1
 gh run list --repo "$R" --workflow 'Deploy to GitHub Pages' --limit 1
 curl -sI https://steven-cutting.github.io/c01-throwaway/ | head -n 1

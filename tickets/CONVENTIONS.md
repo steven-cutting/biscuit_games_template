@@ -1250,7 +1250,7 @@ new-game dest:
 - `test_validators.py` (offline): both validators exit 0 on `git_render`; negative controls: appending `\nTODO: prove the gate reads this\n` to `docs/reference/commands.md` makes `validate_docs.py` exit 1 with "an unfinished marker" on stderr; deleting `.claude/skills/fix-quality/SKILL.md` makes `validate_agents.py` exit 1.
 - `test_questionnaire.py` (offline): `pytest.raises(ValueError, match="Validation error for question 'game_name'")` for `""`, `"x"`, `"Bad{Name}"`, `"a"*41`, `"tab\there"`, `"123"`; `game_slug` refused for `"Tic Tac"`, `"_leading"`, `"UPPER"`, `"a-b"`, `"a__b"`; `repository` refused for `"nogroup"`, `"-x/y"`, `"a/.git"`; `test_computed_defaults` (only `game_name` and `description` given → `game_slug == "tic_tac_toe_beans"`, `repository == "steven-cutting/tic_tac_toe_beans"`, `docs/specs/tic_tac_toe_beans.allium` exists, `brand.ts` reads `GAME_NAME = 'tic tac toe beans'` and `GAME_TITLE = 'Tic Tac Toe Beans'`).
 - `test_specs.py` (`network`): `install_allium.py` then `run_allium.py check` and `analyse` exit 0 in `git_render` (this is the test that the seed module exists and parses; `NO_INPUTS = 2` on an empty `docs/specs/`).
-- `test_update.py` (offline): module fixture `template_clone` (`git clone --no-checkout` of `TEMPLATE_ROOT` into tmp; if the worktree is dirty, `git --work-tree=TEMPLATE_ROOT add -A && commit` in the clone only; skip when fewer than two commits); `old_refs()` = `HEAD~1` plus the latest `v*` tag if any; `test_pristine_update_equals_fresh_render[old_ref]` (render at old ref, `git init` + commit, `copier.run_update(path, defaults=True, overwrite=True, skip_answered=True, unsafe=False, vcs_ref="HEAD", conflict="inline", quiet=True)`, no markers and no `*.rej`, tree digest equals a fresh render at HEAD ignoring `.copier-answers.yml`, both validators pass, `git status --porcelain` empty after commit); `test_update_keeps_game_work` (render at `HEAD~1`; add `docs/project/beans.md` with frontmatter + its manifest line after the last decision + a link under `## This game`; rewrite `README.md`; rewrite the spec module; add `src/lib/components/Board.svelte` and `tests/board.test.ts`; commit; update to HEAD; no markers, no `*.rej`; the page, its manifest line and link, the README, the module and the two added files are byte-unchanged; every MANAGED path equals the fresh render; `validate_docs.py` passes).
+- `test_update.py` (offline): module fixture `template_clone` (`git clone --no-checkout` of `TEMPLATE_ROOT` into tmp; if the worktree is dirty, `git --work-tree=TEMPLATE_ROOT add -A && commit` in the clone only; skip when fewer than two commits; then, in the clone only, one synthetic commit appending `TEMPLATE_CHANGE` to `template/docs/reference/testing.md` and inserting `MAP_CHANGE` after the H1 of `template/docs/README.md.jinja`, so every round trip carries a managed and a game-edited change); `old_refs()` = `HEAD~2` plus the latest `v*` tag if any; `test_pristine_update_equals_fresh_render[old_ref]` (render at old ref, both synthetic strings absent, `git init` + commit, `copier.run_update(path, defaults=True, overwrite=True, skip_answered=True, unsafe=False, vcs_ref="HEAD", conflict="inline", quiet=True)`, no markers and no `*.rej`, tree digest equals a fresh render at HEAD ignoring `.copier-answers.yml`, both synthetic strings present, both validators pass, `git status --porcelain` empty after commit); `test_update_keeps_game_work` (render at `HEAD~2`; add `docs/project/beans.md` with frontmatter + its manifest line after the last decision + a link under `## This game`; rewrite `README.md`; rewrite the spec module; add `src/lib/components/Board.svelte` and `tests/board.test.ts`; commit; update to HEAD; no markers, no `*.rej`; the page, its manifest line and link, the README, the module and the two added files are byte-unchanged; both synthetic strings present; every MANAGED path equals the fresh render; `validate_docs.py` passes).
 - `test_full.py` (`full`): copy `default_render`, `git init -q -b main`, `just initialize` exit 0, on Linux CI `just storybook-browsers-deps`, `just check` exit 0, untracked set after initialize is exactly `{package-lock.json, uv.lock}` and `just check` adds nothing.
 
 Timing: fast suites ~10 s (one shared render plus ~15 throwaway renders at ~1 s), update ~15 s, specs ~5 s, full 10-20 min.
@@ -1267,10 +1267,11 @@ Tags: annotated `vMAJOR.MINOR.PATCH` on `main`; prereleases as `v0.2.0rc1` (no h
 
 ## 11. Rules for tickets and lanes
 
-- **Worktrees and branches.** Each ticket is executed on branch `ticket/<id>-<slug>` in
-  its own worktree, created from `main` after T00 has merged. From a Supacode terminal:
-  `supacode repo worktree-new --branch ticket/<id>-<slug> --base main --name <id>`;
-  otherwise `git worktree add ../<id> -b ticket/<id>-<slug> main`. A ticket touches only
+- **Worktrees and branches.** Each ticket is executed on the branch its `branch:` field
+  names (`<branch>`, lowercase: `ticket/t03-workflows`) in its own worktree, created from
+  `main` after T00 has merged. From a Supacode terminal:
+  `supacode repo worktree-new --branch <branch> --base main --name <id>`;
+  otherwise `git worktree add ../<id> -b <branch> main`. A ticket touches only
   its listed files plus the `status:` line of its own `tickets/<id>-*.md`.
 - **T00 renders a shape-complete skeleton.** The fast suite (inventory, residue, both
   validators) can only be green if every path in §4 exists from the first commit, so
@@ -1385,7 +1386,7 @@ change that goes back through this document.
   `CHANGELOG.md` under "Update notes" and is a MAJOR release.
 - **Tag before the first consumer render.** An untagged render records a bare SHA as
   `_commit` and update leans on dunamai's `0.0.0.postN` fallback. T11 tags `v0.1.0`
-  first; `tests/test_update.py` depends on `HEAD~1` having a smaller distance than
+  first; `tests/test_update.py` depends on `HEAD~2` having a smaller distance than
   `HEAD`, which merge-commit histories can confuse until tags exist.
 - **Delete the stub README before copying into `tic_tac_toe_beans`.** `_skip_if_exists`
   is checked before overwrite, so `copier copy` keeps an existing `README.md` and

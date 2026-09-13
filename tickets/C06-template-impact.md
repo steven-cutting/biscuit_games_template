@@ -46,9 +46,14 @@ repository's `AGENTS.md` and `Justfile`.
   render both refs with default answers, diff the two renders, print every changed
   rendered path with its class from `tests/inventory.py`, and report questionnaire
   changes by comparing `copier.yml` at both refs. A seed change is flagged "reaches no
-  existing game"; a `GAME_EDITED` change is flagged "conflict-likely"; a path in the
-  new render that is a seed and absent from the old render, or a new numbered decision,
-  is refused with a non-zero exit, because the inventory is frozen.
+  existing game"; a `GAME_EDITED` change is flagged "conflict-likely"; a managed path
+  absent from the new render is flagged "removed from every game: MAJOR, needs an Update
+  note". A seed path added or removed, or a new numbered decision, is refused with a
+  non-zero exit, because the inventory is frozen: a game keeps a removed seed, and a
+  removed seed page the re-rendered `docs/manifest.yml` no longer declares fails the
+  game's `validate_docs.py` ("missing from manifest.yml", H `scripts/validate_docs.py`
+  line 297). A removed path is classified by the old ref's inventory, because the new
+  ref's no longer lists it.
 - `.agents/skills/template-impact/SKILL.md` in the template repository: run the check,
   write the `CHANGELOG.md` entry under the four headings, decide the tag level by
   CONVENTIONS.md §10 (MAJOR: a managed file removed, a question renamed or added
@@ -92,15 +97,26 @@ repository's `AGENTS.md` and `Justfile`.
      defaults=True, data=DEFAULT_ANSWERS, unsafe=False, quiet=True)`.
    - Walk both renders; for each path present in either, compute added / removed /
      changed by content digest, ignoring `.copier-answers.yml`.
-   - Classify each path with `pathspec` against `SEED` (the same patterns as
-     `copier.yml`'s `_skip_if_exists`), then `GAME_EDITED`, then `MANAGED`; a path in
-     none is reported as "unclassified" and fails the run (the inventory test would
-     fail too).
+   - Classify each path by the ref that renders it: an added or changed path by
+     `new_ref`'s classification, a removed path by `old_ref`'s. The two differ because
+     `test_inventory_matches_classification` holds each ref's `tests/inventory.py` to
+     exactly what that ref renders, so the new inventory no longer names a path the
+     change removed. Read a ref's classification from the ref, never from the working
+     tree: `git worktree add --detach <dir> <ref>` in the temporary clone, then a
+     subprocess `python -c` in `<dir>` that imports `tests.inventory` and prints
+     `MANAGED`, `SEED` and `GAME_EDITED` as JSON lists (one process per ref, so the old
+     module never shadows the new one), plus `_skip_if_exists` from that ref's
+     `copier.yml`. A ref without `tests/inventory.py` (older than T10) exits 1 naming
+     the ref. Within a ref, match with `pathspec` against `SEED` (the same patterns as
+     `_skip_if_exists`), then `GAME_EDITED`, then `MANAGED`; a path in none is reported
+     as "unclassified" and fails the run (the inventory test would fail too).
    - Print one line per path: `<status> <class> <path>` plus the flag text; then a
      questionnaire section: questions added, removed, renamed, or whose `default`
      changed, by parsing `copier.yml` at both refs with `yaml.safe_load` and comparing
      the keys that do not start with `_`.
-   - Exit 2 on a refused change (a seed path added, a `docs/decisions/00NN-*` added or
+   - A removed managed path prints `removed managed <path>` with the flag "removed from
+     every game: MAJOR, needs an Update note".
+   - Exit 2 on a refused change (a seed path added or removed, a `docs/decisions/00NN-*` added or
      renamed, a seed retitled: compare the `title:` line of seed pages), 1 on an
      unclassified path, 0 otherwise. `--json` prints the same as one object.
    - `mypy --strict` and ruff clean under the template repository's configuration.
@@ -109,7 +125,7 @@ repository's `AGENTS.md` and `Justfile`.
    ```just
    # What a template change does to every rendered game: each changed rendered path
    # with its class (managed, game-edited, seed) and the questionnaire diff. Refuses a
-   # seed addition: the inventory is frozen after v0.1.0.
+   # seed addition or removal: the inventory is frozen after v0.1.0.
    impact old new="HEAD":
        uv run --frozen python scripts/template_impact.py "$1" "$2"
    ```
@@ -131,8 +147,10 @@ repository's `AGENTS.md` and `Justfile`.
    them. Add one sentence to `AGENTS.md` pointing at the skill.
 6. Prove the check on synthetic history in a clone (never on `main`): three commits on
    a scratch branch, one editing a seed (`template/README.md.jinja`), one editing a
-   managed file (`template/Justfile`), one renaming a question in `copier.yml`; run
-   `just impact` between each pair and assert the three flags; then one commit adding
+   managed file (`template/Justfile`), one renaming a question in `copier.yml`; then one
+   removing a managed file (`git rm template/.editorconfig` and its `.editorconfig` entry
+   in `tests/inventory.py`); run `just impact` between each pair and assert the four
+   flags, the removal classified from the old ref; then one commit adding
    `template/docs/decisions/0011-x.md` and assert exit 2.
 
 ## Acceptance criteria
@@ -142,6 +160,9 @@ repository's `AGENTS.md` and `Justfile`.
 - [ ] A seed-only change prints "reaches no existing game"; a `GAME_EDITED` change
       prints "conflict-likely"; a question rename is reported under the questionnaire
       section; a seed addition exits 2 with the frozen-inventory message.
+- [ ] A managed file removed between the refs prints `removed managed <path>` with the
+      MAJOR flag, classified from the old ref's inventory, and exits 0; a seed removed
+      between the refs exits 2.
 - [ ] `tests/test_changelog.py` is green and fails on a fifth heading.
 - [ ] The skill exists, the template repository's `AGENTS.md` names it, and
       `just check` (lint, typecheck, test) is green.
@@ -162,10 +183,11 @@ Synthetic check (step 6), from a clone in `ai_tmp/`:
 
 ```sh
 git clone -q --no-checkout . ai_tmp/impact && cd ai_tmp/impact && git checkout -q -b scratch main
-# make the four commits described in step 6, then:
-just impact HEAD~4 HEAD~3; echo "exit $?"   # seed edit: 'reaches no existing game', exit 0
-just impact HEAD~3 HEAD~2; echo "exit $?"   # managed edit: 'conflict-likely' for Justfile, exit 0
-just impact HEAD~2 HEAD~1; echo "exit $?"   # question rename reported, exit 0
+# make the five commits described in step 6, then:
+just impact HEAD~5 HEAD~4; echo "exit $?"   # seed edit: 'reaches no existing game', exit 0
+just impact HEAD~4 HEAD~3; echo "exit $?"   # managed edit: 'conflict-likely' for Justfile, exit 0
+just impact HEAD~3 HEAD~2; echo "exit $?"   # question rename reported, exit 0
+just impact HEAD~2 HEAD~1; echo "exit $?"   # 'removed managed .editorconfig' with the MAJOR flag, exit 0
 just impact HEAD~1 HEAD; echo "exit $?"     # seed addition refused, exit 2
 ```
 

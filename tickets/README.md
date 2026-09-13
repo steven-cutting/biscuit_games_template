@@ -62,17 +62,18 @@ The graph is acyclic: T00, then nine parallel lanes, then T10, T11, T12 in seque
 
 ## How to pick up a ticket
 
-1. Create a worktree on a branch named after the ticket, from `main`, after every
-   ticket it depends on has merged:
+1. Create a worktree on the branch the ticket's `branch:` field names, from `main`,
+   after every ticket it depends on has merged. Below, `<branch>` is that field, which
+   is lowercase (`ticket/t03-workflows`), and `<id>` is the ticket id (`T03`):
 
    ```sh
-   supacode repo worktree-new --branch ticket/<id>-<slug> --base main --name <id>
+   supacode repo worktree-new --branch <branch> --base main --name <id>
    ```
 
    Outside a Supacode terminal:
 
    ```sh
-   git worktree add ../<id> -b ticket/<id>-<slug> main
+   git worktree add ../<id> -b <branch> main
    ```
 
 2. Read `CONVENTIONS.md`, then the ticket. Read the source files the ticket names in
