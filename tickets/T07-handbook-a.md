@@ -1,7 +1,7 @@
 ---
 id: T07
 title: "Handbook A: project, tutorial and how-to pages, and the three seed root files"
-status: open
+status: done
 depends_on: [T00]
 parallel_with: [T01, T02, T03, T04, T05, T06, T08, T09]
 branch: ticket/t07-handbook-a
@@ -814,15 +814,171 @@ Expected: `lock-check`, `lint`, `typecheck` and `test` all pass.
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### Verified, and how
 
-- What was verified and how: paste the output of each Verification block.
-- What deviated from the ticket and why (a line number that had moved, a sentence
-  reworded to pass typos or the word floor, a link whose target the map lacked).
-- What was handed back to another ticket: any manifest or map change (T00 follow-up), any
-  `extend-words` entry (T01), any validator behaviour (T02), and which tier-B pages, if
-  any, were cut.
-- Which open points were settled, with the check that settled each.
+`just test` in the template repository, after the last edit:
+
+```text
+tests/test_render.py .......................                             [ 79%]
+tests/test_specs.py ss                                                   [ 86%]
+tests/test_validators.py ....                                            [100%]
+SKIPPED [1] tests/test_specs.py:26: set BISCUIT_TEMPLATE_NETWORK=1
+SKIPPED [1] tests/test_specs.py:34: set BISCUIT_TEMPLATE_NETWORK=1
+================= 27 passed, 2 skipped, 16 warnings in 12.04s ==================
+```
+
+The sixteen warnings are copier's `DirtyLocalWarning` for the uncommitted tree. The four
+named tests are among the passes; none is skipped.
+
+The render and its validator:
+
+```text
+Rendered into ai_tmp/render
+Validated 38 pages and 39 canonical topics.
+exit 0
+```
+
+The hub's validator prints that one line on success, so the exit status is the check
+rather than silence.
+
+markdownlint over the render:
+
+```text
+markdownlint-cli2 v0.23.2 (markdownlint v0.41.1)
+Linting: 68 files
+Summary: 0 issues in 0 files
+```
+
+The render's `.markdownlint-cli2.jsonc` adds its own `**/*.md` glob, so every Markdown
+file in the render was linted, not only the four named. This version says "0 issues"
+where the ticket expected "0 error(s)".
+
+The forbidden-token grep printed exactly two lines, both in `docs/project/platform.md`,
+both `https://` URLs:
+
+```text
+ai_tmp/render/docs/project/platform.md:76:| [Poodl handover](https://github.com/steven-cutting/biscuit_games/blob/main/docs/operations/poodl-handover.md) | The ledger the first game worked through when it took the package, and what it still records. |
+ai_tmp/render/docs/project/platform.md:78:| [Their decision 0012](https://github.com/steven-cutting/biscuit_games/blob/main/docs/decisions/0012-the-domain-root-stays-with-poodl.md) | Why the domain root is still Poodl's. |
+```
+
+The delimiter grep printed nothing.
+
+The render's own documentation gate:
+
+```text
+markdownlint.............................................................Passed
+typos....................................................................Passed
+lychee...................................................................Passed
+uv run --frozen python scripts/validate_docs.py
+Validated 38 pages and 39 canonical topics.
+```
+
+The Verification block as written is one step short. prek's `--all-files` reads the files
+Git tracks, a freshly initialised render tracks none, and all three hooks then print
+"(no files to check) Skipped". Running `git add -A` inside the render after `git init` is
+what makes them read anything; T11 runs the same gate.
+
+`just check` in the template repository: `lock-check` passed, every `lint` hook passed,
+`mypy` reported "Success: no issues found in 7 source files", and `test` gave the same 27
+passed and 2 skipped.
+
+### Deviations
+
+- `template/SECURITY.md` is unchanged. T00 had already shipped it in final form: its diff
+  against `P SECURITY.md` is exactly lines 28-32 removed and the fallback paragraph added
+  after line 7.
+- `docs/tutorials/first-change.md`: the seed `src/routes/+page.svelte` puts two sentences
+  in the main landmark ("Nothing to play yet. The board goes here."), so step 2 says "a
+  short placeholder" where the ticket said "one sentence", step 4 says "instead of its
+  placeholder" and step 5 says "Change the placeholder".
+- `docs/how-to/work-in-the-component-workshop.md`: P lines 62-65 name Quality gates twice
+  in consecutive sentences ("What it costs is in [Quality gates]. [Quality gates] states
+  the exception"), an editing slip; here they are one sentence.
+- `docs/how-to/update-from-template.md`: step 3 keeps each marker name whole on one line
+  (the ticket's wrap split `>>>>>>> after updating` over a line break), so a search finds
+  either; no line starts with a marker, so `check-merge-conflict` does not read the page as
+  a conflict. The regenerate step is a `console` block, four lines after review, not the
+  one-liner the acceptance criterion quotes, which `_message_after_update` carries.
+- `docs/how-to/work-with-the-specs.md`: P 105-144 became three paragraphs, the third
+  holding both the `.created(...)` lesson and the 3.6.1 alias lesson. The sentence that
+  every waiver was verified against 3.6.1 and is re-verified when the pin moves is P
+  102-104, kept.
+- `docs/project/platform.md`: rows 76 and 78 keep "Poodl" beside their URLs, as the edit
+  list leaves them. Row 76's link text is the hub page's own title and row 78's
+  description is the hub decision's subject; the allowlist covers the page.
+- The template root's `CHANGELOG.md`, outside Files touched, gains one Managed bullet (the
+  ten managed pages) and one Seed bullet (the four seed files that changed), because
+  `AGENTS.md` asks for a note on every seed change and T09 set the precedent.
+- Prose an edit touched was rewrapped near 90 columns. Untouched P lines keep P's
+  wrapping.
+- After review on PR 10, beyond the ticket's exact content:
+  - `deploy-to-github-pages.md`: step 2 is the package read grant that
+    `_message_after_copy` and decision 0010 ask for before the first push, in place of
+    confirming the `github-pages` environment, which GitHub creates on the first run. The
+    failure paragraph names what each missing setting does.
+  - `maintain-dependencies.md` (both procedures) and `update-from-template.md`: `just sync`
+    follows `just lock` before any check. `just lock` writes the lockfiles only, and no
+    recipe under `just check` installs `node_modules`; `uv run --frozen` syncs the Python
+    environment by itself.
+  - `update-from-template.md`: three kinds of file, not two. `.copier-answers.yml` is
+    Copier's and is rewritten whole on every update.
+  - `README.md` and `develop-locally.md`: `just fix` is the one of the pair that modifies
+    files, not the only command that does; `just lock` and `just format` write too.
+  - `terminology.md`: a recipe is the only supported interface to the checks, as
+    `AGENTS.md` says, rather than the only way to run anything.
+  - `work-with-the-specs.md`: the recipes do not take the exit code as their verdict, but
+    `scripts/run_allium.py` does read it.
+  - `develop-locally.md`: `engines` states ranges; `volta` and `.python-version` pin.
+  - `work-in-the-component-workshop.md`: four toolbar globals, not three, and the port
+    fakes rule no longer says `tests/` uses the platform package's two.
+
+### Handed back
+
+- **T00 follow-up, a questionnaire change through CONVENTIONS.md §3.** `game_name` accepts
+  `|`, and `docs/project/terminology.md` puts the name in two table rows. A render with
+  `game_name=Tic | Beans` gives a terminology page markdownlint refuses:
+
+  ```text
+  docs/project/terminology.md:21:28 error MD056/table-column-count Table column count [Expected: 2; Actual: 3; Too many cells, extra data will be missing]
+  docs/project/terminology.md:31:72 error MD056/table-column-count Table column count [Expected: 2; Actual: 3; Too many cells, extra data will be missing]
+  ```
+
+  The pages do not work around it, as the open point says. The remedy is a refusal in the
+  `game_name` validator and a case in `MARKDOWN_ANSWERS`.
+- No manifest or map change, no `extend-words` entry and no validator change. No tier-B
+  page was cut: `terminology.md.jinja` and `test-and-debug.md` both shipped.
+- For the next edit of CONVENTIONS.md §8: row 4 calls platform.md's outbound table
+  thirteen rows, where P has sixteen and all sixteen shipped; row 6 drops a `BASE_PATH`
+  line the tutorial never had.
+- **T00 follow-up, `_message_after_update`.** The update page's step 4 now runs
+  `just sync` between `just lock` and `just fix`. `copier.yml`'s `_message_after_update`
+  and CONVENTIONS.md §10 item 5 still give `just lock && just fix && just check`, and so
+  does decision 0009 (T09's). No lane edits `copier.yml`.
+
+### Open points settled
+
+- **The links a managed page may use.** `test_managed_pages_link_only_to_stable_pages`
+  accepts a target in `managed_pages`, every `docs/` Markdown path in `MANAGED`, which
+  includes `docs/README.md`, or one matching `docs/decisions/*.md`, which includes
+  `docs/decisions/README.md`. Both indexes are permitted, and the map is exempt only as a
+  source. This ticket's pages link to neither; platform.md names the decision index as a
+  code span, as the ticket asks.
+- **Decision titles**, `template/docs/manifest.yml` lines 43-48, each after "Decision
+  NNNN: ": 0005 "A component workshop", 0006 "Visual review in Chromatic", 0007 "A
+  project-managed Allium binary", 0008 "The design system arrives as a package", 0009
+  "Rendered from the template", 0010 "A project Pages site". They are the link text in
+  platform.md, the workshop page, the deploy page and the update page.
+- **Reachability.** `validate_docs.py` exits 0 on the render, so all twelve pages here,
+  `how-to/update-from-template.md` included, are reachable from `docs/README.md`.
+- **Markdown-active answers.** The ticket's command omits `game_name`, which has no
+  default, so it cannot render as written. With `-d 'game_name=Tic Tac Toe Beans'` and
+  `-d 'description=A *marked* game_with_under_scores.'`, markdownlint over the render's
+  `README.md`, `purpose-and-scope.md` and `terminology.md` reports 0 issues. The `|` case
+  above is the one failure found.
+- **`check-merge-conflict`** is at `template/.pre-commit-config.yaml:78`, so the update
+  page keeps the hook-gate sentence.
+- **typos** passes over the rewritten pages and the default slug in the render's
+  `just check-docs`.
 
 ## Open points
 
