@@ -10,11 +10,11 @@ import '@steven-cutting/biscuit-games/app.css';
 /*
  * Appearance globals.
  *
- * `settings.allium`'s SettingsPanel exposes `settings.theme` and
- * `settings.high_contrast`; its Appearance surface derives `dark_active` and
- * `animations_active` from them and from the device. The toolbar below makes
- * those inputs adjustable so the surfaces can be built and inspected before the
- * settings screen exists.
+ * `appearance.allium`'s Appearance surface, which `@steven-cutting/biscuit-games`
+ * ships, derives `dark_active` and `animations_active` from the stored settings
+ * and from the device. The toolbar below makes those inputs adjustable so a
+ * component can be built and inspected in every combination of theme and high
+ * contrast before the route that sets them exists.
  *
  * The stylesheet keys every palette on `:root` — the documentElement of the
  * preview iframe. A decorator that wrapped the story in a
@@ -23,9 +23,9 @@ import '@steven-cutting/biscuit-games/app.css';
  *
  * This is Storybook infrastructure standing in for the host document, not the
  * application expressing a preference, so it needs no port. The application
- * does need one, and has one: the route reads the device through the platform's
- * preferences port and writes these same three attributes from what it says —
- * see `docs/explanation/layering.md`.
+ * does need one, and the platform ships it: a route that lets the player choose
+ * reads the device through the platform's preferences port and writes these
+ * same three attributes from what it says — see `docs/explanation/layering.md`.
  */
 
 const THEMES = ['system', 'light', 'dark'] as const;
@@ -70,10 +70,10 @@ function readAppearance(globals: Record<string, unknown>): Appearance {
  *
  * `prefers-reduced-motion` is a media query. Nothing running inside the page can
  * make `matchMedia` report `reduce`; only the browser can, from outside. This
- * freezes declarative motion so a reviewer sees the still frame — the tile
- * reveal is the one thing it has to freeze. It stands in for the device half of
- * `Appearance.animations_active`, and because it is a simulation it is not
- * evidence that the real preference is honoured; `tests/` holds that.
+ * freezes declarative motion so a reviewer sees the still frame. It stands in
+ * for the device half of `Appearance.animations_active`, and because it is a
+ * simulation it is not evidence that the real preference is honoured; the
+ * platform's preferences port and the tests behind it are.
  */
 function applySimulatedReducedMotion(active: boolean): void {
   const existing = document.getElementById(REDUCED_MOTION_STYLE_ID);
@@ -125,10 +125,11 @@ function applyAppearance(appearance: Appearance): void {
   }
 
   /*
-   * `Appearance.animations_active`, on the same terms the route writes it: the
-   * setting and the device's reduced-motion preference taken together, and the
-   * device wins. Without this the attribute is never present in the workshop
-   * and every story renders the animation-off path, whatever the toolbar says.
+   * `Appearance.animations_active`, on the terms a route that lets the player
+   * choose writes it: the setting and the device's reduced-motion preference
+   * taken together, and the device wins. Without this the attribute is never
+   * present in the workshop and every story renders the animation-off path,
+   * whatever the toolbar says.
    */
   if (appearance.animations === 'on' && appearance.reducedMotion !== 'reduce') {
     root.setAttribute('data-animations', 'on');
@@ -239,8 +240,7 @@ const preview: Preview = {
     a11y: {
       // Every surface in `docs/specs/` carries an accessibility `@guarantee`, so
       // a violation is a failure rather than a note nobody reads. The addon's
-      // own default is 'todo', which reports and passes. No rule is disabled:
-      // decision 0006 records the palette repair that made that possible.
+      // own default is 'todo', which reports and passes. No rule is disabled.
       test: 'error'
     },
     // `app.css` owns the page background through `--background`. A background

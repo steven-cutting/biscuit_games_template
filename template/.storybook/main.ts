@@ -36,13 +36,13 @@ const config: StorybookConfig = {
   ],
   /*
    * The platform's own workshop, shown beside this one rather than rebuilt
-   * here: its components, and the token sheet this game no longer keeps. Its
+   * here: its components, and the token sheet this game does not keep. Its
    * address is the one thing about it recorded upstream — pasted here because
    * this block has to run as it stands — and `docs/project/platform.md` is the
    * way to the page that records it.
    *
    * `expanded: false` because this game's own components belong at the top of
-   * this game's own sidebar.
+   * its own sidebar.
    *
    * This is the one thing in `just check` that reaches the network. Storybook
    * checks a ref while it builds by fetching the address's `iframe.html`, and
@@ -54,7 +54,7 @@ const config: StorybookConfig = {
    * answers costs two requests and one that does not costs one. The story run
    * never fetches at all — `getRefs` returns nothing under the test runner
    * before any address is read.
-   * `docs/reference/quality-gates.md` states the exception, and decision 0013
+   * `docs/reference/quality-gates.md` states the exception, and decision 0008
    * is why it was taken.
    */
   refs: {
@@ -88,7 +88,7 @@ const config: StorybookConfig = {
    *
    * `mergeConfig` concatenates arrays, so this entry survives the config
    * SvelteKit's plugin merges on top of it. A directory rather than a file,
-   * which covers `fixtures.ts` as well as the `*.stories.svelte`.
+   * which covers a helper module beside the `*.stories.svelte` as well.
    *
    * Dev only: `fs.allow` guards nothing else. `storybook build` bundles the same
    * files through Rollup and the story run resolves them through Vitest, which

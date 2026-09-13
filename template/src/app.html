@@ -1,9 +1,10 @@
 <!doctype html>
 <!--
-  data-theme="dark" is `default Settings player_settings` from settings.allium,
-  stated in the markup so the prerendered page paints the default before the
-  store hydrates. +page.svelte's appearance effect then writes the player's
-  actual choice over it: `light` replaces it, `system` removes it.
+  data-theme="dark" is `default AppearanceSettings appearance_settings` from
+  the platform's appearance.allium, which @steven-cutting/biscuit-games ships,
+  stated in the markup so the prerendered page paints the default before
+  anything hydrates. A route that lets the player choose writes their choice
+  over it: `light` replaces it, `system` removes it.
 -->
 <html lang="en" data-theme="dark">
   <head>

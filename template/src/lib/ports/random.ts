@@ -2,9 +2,10 @@
  * Drawing one candidate from many.
  *
  * A specification that calls `uniform_choice` says the same thing about it
- * every time: what matters is that every candidate is equally likely, not that
- * the same input yields the same value. That makes it the one deliberately
- * non-deterministic step, and therefore the one that has to sit behind a port.
+ * every time: what matters is that every candidate is equally likely, not
+ * that the same input yields the same value. That makes it the one
+ * deliberately non-deterministic step, and therefore the one that has to sit
+ * behind a port.
  */
 export interface RandomPort {
   uniformChoice<Value>(items: readonly Value[]): Value;
