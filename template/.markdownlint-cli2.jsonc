@@ -18,7 +18,6 @@
     ".svelte-kit",
     "build",
     "coverage",
-    "site",
     "storybook-static",
     "ai_tmp",
     ".venv"
