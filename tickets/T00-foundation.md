@@ -1586,6 +1586,47 @@ Handed back from this review:
 - **T10.** The Markdown refusals already run in `tests/test_render.py`;
   `tests/test_questionnaire.py` need not repeat them.
 
+Copilot then reviewed `a924947`: two review threads, and two comments on the root
+`Justfile` in the review body.
+
+- **`tests/ports.test.ts` imported adapters the template does not ship.** True. Lines 4
+  and 9 imported `src/lib/ports/clipboard` and `src/lib/ports/timer`, so a render's
+  `npm test` could not resolve the file. It is now T05 step 8's file: that step's `sed`
+  recipe over P `0a46a485`, plus its one added case, reproduces it byte for byte. Three
+  describes, sixteen cases, no clipboard, timer or preferences import. In a render after
+  `npm install`, `npx vitest run --config vite.config.ts tests/ports.test.ts` passed 16
+  of 16, and ESLint and Prettier report nothing on it.
+- **The narrow Lockup story does not overflow its 320px frame.** Copilot said a chip and
+  four actions cannot fit beside the lockup, so the `scrollWidth` assertion fails. In the
+  same render, `npm run storybook:test -- stories/Lockup.stories.svelte` failed that
+  story only at its heading query, which runs after the `scrollWidth` assertion and every
+  44px target check. Poodl's CI passed the identical layout at `0a46a485` (run
+  34278341765, `stories/Lockup.stories.svelte (3 tests)`). The file stays T00's stub. One
+  `settings` action and no chip are T05 step 9's design, and so is `FRAME_WIDTH`, which
+  the render's ESLint needs: line 83 fails `restrict-template-expressions` on the bare
+  number.
+- **The root `Justfile`: the `test` comment and `test-full`.** True of today's suite: no
+  test is marked `network` or `full`, there is no update test, and the only questionnaire
+  refusals are the Markdown ones, so `BISCUIT_TEMPLATE_NETWORK=1` changes nothing and
+  `just test-full` runs the fast suite. Unchanged, because `Justfile` equals
+  CONVENTIONS.md §9, T02 and T10 add the tests the comments describe, and T10's `full`
+  job is the first caller of `just test-full`.
+
+Handed back from this review:
+
+- **T05.** Step 8 is done; its acceptance checks hold and need only rerunning.
+- **CONVENTIONS.md §0 and the hub.** A render's lockup does not name the game. §0 says
+  every file taken from H is identical at `09b4894a` and at the tag `v1.0.0` (`dfebaf4`),
+  but `Wordmark.svelte` is not: `product` arrived in `41c430b`, after the tag, and the
+  published `@steven-cutting/biscuit-games@1.0.0` takes no props. In a render,
+  `svelte-check` reports `Type 'string' is not assignable to type 'never'` at
+  `src/lib/components/Lockup.svelte:20:11`, and `tests/lockup.test.ts`,
+  `tests/route.test.ts` and the first two Lockup stories receive `biscuit games` where
+  they expect `biscuit games / tic tac toe beans`. The remedy is a hub release carrying
+  `product` with `hub_package_version` moved to it, or a different `Lockup.svelte`;
+  either is a CONVENTIONS change on `main`, and T05's check of the §7 files stops on it
+  until then.
+
 ## Open points
 
 - **Python pins (CONVENTIONS.md §12, this ticket).** `mypy==2.3.0`, `pytest==9.1.1`,

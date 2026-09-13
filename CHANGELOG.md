@@ -14,6 +14,9 @@ are tags on `main`, and what each level means for a rendered game is stated in
   copy or a stub, and the lane tickets under `tickets/` replace each one.
 - `.prettierignore` lists `.copier-answers.yml`, which Copier rewrites on every update,
   and neither it, `.gitattributes` nor either prek config names Poodl's `src/lib/data/`.
+- `tests/ports.test.ts` covers the three ports the template ships, storage, randomness
+  and the clock, so a render's `npm test` no longer imports a clipboard or timer adapter
+  that does not exist.
 
 ### Seed
 
