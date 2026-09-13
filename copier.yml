@@ -91,10 +91,18 @@ _message_after_update: |-
 
 # The free-text answers reach Markdown, TOML, JSON and a single-quoted
 # TypeScript string, and from there Svelte markup. `{` and `}` cannot be escaped
-# out of every one of those at once and are rejected; everything else is escaped
-# at the point of use with the `*_escaped` (TOML/JSON) and `*_ts` (TypeScript)
-# variants. No `.svelte` file is a Jinja template: the name and the description
-# reach the page through `src/lib/brand.ts`.
+# out of every one of those at once and are rejected; the TOML, JSON and
+# TypeScript sites escape the rest with the `*_escaped` and `*_ts` variants. No
+# `.svelte` file is a Jinja template: the name and the description reach the page
+# through `src/lib/brand.ts`.
+#
+# Markdown takes both answers as typed: at the start of a line, mid-sentence and,
+# for the name, as the README heading. So both validators also refuse what
+# Markdown would read as syntax there or the render's markdownlint rejects:
+# surrounding whitespace, a leading block marker or list number, `<`, square
+# brackets and a bare web or email address; the name may not end in `#` or in the
+# punctuation MD026 forbids in a heading. `*`, `_`, `#` and backticks inside the
+# text stay legal, because none of them changes a line's meaning there.
 
 game_name:
   type: str
@@ -113,6 +121,25 @@ game_name:
     {% elif not (value | regex_search('[A-Za-z]')) %}
     Include at least one letter: the package name and the specification module
     are named after this value, and both must start with a letter.
+    {% elif game_name != value %}
+    Remove the spaces around the name. The generated Markdown keeps them, where
+    they break the README heading and, four deep, turn a line of AGENTS.md into code.
+    {% elif value | regex_search('^([#>*+_~`-]|[0-9]+[.)](\\s|$))') %}
+    Start with a letter, a digit or ordinary punctuation. The name opens a line of
+    AGENTS.md, where a leading # > - + * _ ~ or backtick, or a number followed by
+    . or ), makes a heading, quotation, list or code block of it.
+    {% elif '<' in game_name %}
+    Remove the <. Markdown reads it as the start of an HTML tag, and the generated
+    pages carry none.
+    {% elif '[' in game_name or ']' in game_name %}
+    Remove the square brackets. Markdown reads them as a link, and the generated
+    pages link only to what exists.
+    {% elif game_name | regex_search('(?i)(://|www\\.|\\S@\\S)') %}
+    Remove the web or email address. Markdown turns a bare address into a link,
+    and the generated pages may not carry bare links.
+    {% elif game_name | regex_search('[#.,;:!。，；：！]$') %}
+    End with a letter, a digit or a mark such as ? or ). The name is the README
+    heading, and Markdown's linter refuses a heading that ends in # . , ; : or !
     {% endif %}
 
 game_slug:
@@ -140,6 +167,22 @@ description:
     {% elif '{' in description or '}' in description %}
     Remove the braces. They open and close expressions in the generated Svelte
     markup, and no escaping turns them back into ordinary text.
+    {% elif description != value %}
+    Remove the spaces around the description. The generated Markdown keeps them,
+    where trailing ones break the README and four leading ones turn it into code.
+    {% elif value | regex_search('^([#>*+_~`-]|[0-9]+[.)](\\s|$))') %}
+    Start with a letter, a digit or ordinary punctuation. The description is a
+    paragraph of README.md, where a leading # > - + * _ ~ or backtick, or a number
+    followed by . or ), makes a heading, quotation, list or code block of it.
+    {% elif '<' in description %}
+    Remove the <. Markdown reads it as the start of an HTML tag, and the generated
+    pages carry none.
+    {% elif '[' in description or ']' in description %}
+    Remove the square brackets. Markdown reads them as a link, and the generated
+    pages link only to what exists.
+    {% elif description | regex_search('(?i)(://|www\\.|\\S@\\S)') %}
+    Remove the web or email address. Markdown turns a bare address into a link,
+    and the generated pages may not carry bare links.
     {% endif %}
 
 repository:

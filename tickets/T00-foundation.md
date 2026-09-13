@@ -1536,6 +1536,56 @@ No `[tool.typos.default.extend-words]` entry was needed; typos passes over `tick
   section's "39 slugs plus `project_non_goals`" counts that slug twice. The manifest is
   right.
 
+### Review follow-ups (pull request #2)
+
+Codex reviewed `a924947` and raised three findings. Each reproduced, and the maintainer
+asked for all three fixed on this branch.
+
+- **An answer that is Markdown syntax broke the render's gate.** With
+  `description=# A puzzle game`, `README.md` carried a second H1 and the render's
+  markdownlint-cli2 v0.23.2 reported `README.md:3 error MD025/single-title/single-h1`.
+  The class was wider and reached `game_name` as well. Thirty-two answers rendered with
+  `copier copy` and linted in the render found MD009 and MD019 (surrounding whitespace),
+  MD018 (`#hashtag`), MD003 and MD020 (a name ending in `#`), MD026 (a name ending in
+  `!`, `.` or a full-width `！`), MD033 (`<b>`), MD034 (`https://`, `www.`, an email
+  address), MD036 (a whole-line emphasis) and MD052 (`[beans][ref]`). A leading `-`,
+  `>`, `1.`, a fence or four spaces lint clean but turn the sentence into a list,
+  quotation or code block. Both validators in `copier.yml` now refuse those shapes;
+  CONVENTIONS.md §3 changed in the same commit, so the two are still byte-identical, and
+  the comment above `game_name` states the rule. Refusing was chosen over escaping at the
+  use sites: the answers land at the start of a line, mid-sentence and in a heading, in
+  files other lanes own, and no single escape is right in all three. Mid-sentence `*`,
+  `_`, `#`, backticks and `~~` stay legal, and all eight accepted answers in the probe
+  render lint clean, `A *marked* game.` and `C# Beans?` among them.
+- **Prettier rewrote Copier's answers file.** For a description PyYAML quotes and folds
+  (an apostrophe, a colon, past 80 columns), `.copier-answers.yml` carried a
+  single-quoted scalar with a four-space continuation. Prettier 3.9.6, with the render's
+  options, rewrote it to double quotes and two spaces, and `prettier --list-different .`
+  named the file, so `npm run lint` would fail in that game. `template/.prettierignore`
+  now ends with T01 step 4's block, verbatim, and the same render lists nothing.
+- **`src/lib/data/` hid game files from every hook.** The alternative is gone from both
+  prek configs' `exclude`, and the same stale entry from `template/.prettierignore` and
+  `template/.gitattributes`.
+- **Tests.** `tests/test_render.py` gains `test_markdown_syntax_in_an_answer_is_refused`
+  (fourteen answers, one per rule) and
+  `test_markdown_punctuation_inside_an_answer_is_accepted`; §9 lists both. `just check`:
+  every hook passed, mypy found nothing, 27 tests passed.
+
+Handed back from this review:
+
+- **T01.** `.gitattributes`, `.pre-commit-config.yaml` and `.pre-commit-fix.yaml` are
+  already in their designed form, and `.prettierignore` carries step 4's
+  `.copier-answers.yml` block but still lists `site`. Overwriting each from P as the
+  table says gives the same files, and the `diff` checks against P still hold. The
+  optional open point on Prettier and the answers file is settled: Prettier rewrites it.
+- **T06.** `--data 'game_name=Tic Tac Toe Beans '` in the open points is now refused for
+  its trailing space, so that check cannot run as written.
+- **T07.** The open point on Markdown-active answers is settled: `A *marked* game.` is
+  accepted and lints clean, and the shapes that break a page are refused by the
+  questionnaire.
+- **T10.** The Markdown refusals already run in `tests/test_render.py`;
+  `tests/test_questionnaire.py` need not repeat them.
+
 ## Open points
 
 - **Python pins (CONVENTIONS.md §12, this ticket).** `mypy==2.3.0`, `pytest==9.1.1`,

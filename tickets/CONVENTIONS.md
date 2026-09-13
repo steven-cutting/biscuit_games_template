@@ -191,10 +191,18 @@ _message_after_update: |-
 
 # The free-text answers reach Markdown, TOML, JSON and a single-quoted
 # TypeScript string, and from there Svelte markup. `{` and `}` cannot be escaped
-# out of every one of those at once and are rejected; everything else is escaped
-# at the point of use with the `*_escaped` (TOML/JSON) and `*_ts` (TypeScript)
-# variants. No `.svelte` file is a Jinja template: the name and the description
-# reach the page through `src/lib/brand.ts`.
+# out of every one of those at once and are rejected; the TOML, JSON and
+# TypeScript sites escape the rest with the `*_escaped` and `*_ts` variants. No
+# `.svelte` file is a Jinja template: the name and the description reach the page
+# through `src/lib/brand.ts`.
+#
+# Markdown takes both answers as typed: at the start of a line, mid-sentence and,
+# for the name, as the README heading. So both validators also refuse what
+# Markdown would read as syntax there or the render's markdownlint rejects:
+# surrounding whitespace, a leading block marker or list number, `<`, square
+# brackets and a bare web or email address; the name may not end in `#` or in the
+# punctuation MD026 forbids in a heading. `*`, `_`, `#` and backticks inside the
+# text stay legal, because none of them changes a line's meaning there.
 
 game_name:
   type: str
@@ -213,6 +221,25 @@ game_name:
     {% elif not (value | regex_search('[A-Za-z]')) %}
     Include at least one letter: the package name and the specification module
     are named after this value, and both must start with a letter.
+    {% elif game_name != value %}
+    Remove the spaces around the name. The generated Markdown keeps them, where
+    they break the README heading and, four deep, turn a line of AGENTS.md into code.
+    {% elif value | regex_search('^([#>*+_~`-]|[0-9]+[.)](\\s|$))') %}
+    Start with a letter, a digit or ordinary punctuation. The name opens a line of
+    AGENTS.md, where a leading # > - + * _ ~ or backtick, or a number followed by
+    . or ), makes a heading, quotation, list or code block of it.
+    {% elif '<' in game_name %}
+    Remove the <. Markdown reads it as the start of an HTML tag, and the generated
+    pages carry none.
+    {% elif '[' in game_name or ']' in game_name %}
+    Remove the square brackets. Markdown reads them as a link, and the generated
+    pages link only to what exists.
+    {% elif game_name | regex_search('(?i)(://|www\\.|\\S@\\S)') %}
+    Remove the web or email address. Markdown turns a bare address into a link,
+    and the generated pages may not carry bare links.
+    {% elif game_name | regex_search('[#.,;:!。，；：！]$') %}
+    End with a letter, a digit or a mark such as ? or ). The name is the README
+    heading, and Markdown's linter refuses a heading that ends in # . , ; : or !
     {% endif %}
 
 game_slug:
@@ -240,6 +267,22 @@ description:
     {% elif '{' in description or '}' in description %}
     Remove the braces. They open and close expressions in the generated Svelte
     markup, and no escaping turns them back into ordinary text.
+    {% elif description != value %}
+    Remove the spaces around the description. The generated Markdown keeps them,
+    where trailing ones break the README and four leading ones turn it into code.
+    {% elif value | regex_search('^([#>*+_~`-]|[0-9]+[.)](\\s|$))') %}
+    Start with a letter, a digit or ordinary punctuation. The description is a
+    paragraph of README.md, where a leading # > - + * _ ~ or backtick, or a number
+    followed by . or ), makes a heading, quotation, list or code block of it.
+    {% elif '<' in description %}
+    Remove the <. Markdown reads it as the start of an HTML tag, and the generated
+    pages carry none.
+    {% elif '[' in description or ']' in description %}
+    Remove the square brackets. Markdown reads them as a link, and the generated
+    pages link only to what exists.
+    {% elif description | regex_search('(?i)(://|www\\.|\\S@\\S)') %}
+    Remove the web or email address. Markdown turns a bare address into a link,
+    and the generated pages may not carry bare links.
     {% endif %}
 
 repository:
@@ -1251,7 +1294,7 @@ new-game dest:
 
 **Tests**:
 
-- `test_render.py` (offline): `test_inventory_matches_classification` (`render.files() == MANAGED | SEED | {".copier-answers.yml"}`; every SEED path matches `pathspec.PathSpec.from_lines("gitwildmatch", _skip_if_exists)` and no MANAGED path does; the `_exclude` update block's lines equal `_skip_if_exists`); `test_verbatim_files_are_byte_identical` (for every template source without `.jinja`, rendered bytes == source bytes; this is the residue test's first half and is what lets `.svelte` files carry `{{`/`{#`); `test_rendered_jinja_files_carry_no_delimiter` (for every `.jinja` source, the render has none of `{{`, `{%`, `{#`); `test_no_poodl_outside_provenance` (case-insensitive "poodl" only in `AGENTS.md`, `docs/project/platform.md`, `docs/decisions/*.md`, `tests/restated.ts`, `tests/platform.ts`; tokens `pnut`, `site-root`, `stage_site`, `stage-preview`, `word list`, `word-list`, `words.allium`, `daily.allium`, `sharing.allium`, `statistics.allium`, `foo/www`, `/Users/` nowhere); `test_answers_file_and_provenance` (`{"_commit", "_src_path", *DEFAULT_ANSWERS} <= answers.keys()`; `_commit` appears in `AGENTS.md`); `test_no_lockfiles_shipped`; `test_pins_agree` (workflows' `node-version: '26'`, `version: 0.11.18`, `rust-just==1.51.0`, `npm@11.17.0`, `uv python install 3.14` agree with `package.json` volta/engines and `.python-version`; `package.json` pins `@steven-cutting/biscuit-games` at `copier.yml`'s `hub_package_version`); `test_managed_pages_link_only_to_stable_pages`.
+- `test_render.py` (offline): `test_inventory_matches_classification` (`render.files() == MANAGED | SEED | {".copier-answers.yml"}`; every SEED path matches `pathspec.PathSpec.from_lines("gitwildmatch", _skip_if_exists)` and no MANAGED path does; the `_exclude` update block's lines equal `_skip_if_exists`); `test_verbatim_files_are_byte_identical` (for every template source without `.jinja`, rendered bytes == source bytes; this is the residue test's first half and is what lets `.svelte` files carry `{{`/`{#`); `test_rendered_jinja_files_carry_no_delimiter` (for every `.jinja` source, the render has none of `{{`, `{%`, `{#`); `test_no_poodl_outside_provenance` (case-insensitive "poodl" only in `AGENTS.md`, `docs/project/platform.md`, `docs/decisions/*.md`, `tests/restated.ts`, `tests/platform.ts`; tokens `pnut`, `site-root`, `stage_site`, `stage-preview`, `word list`, `word-list`, `words.allium`, `daily.allium`, `sharing.allium`, `statistics.allium`, `foo/www`, `/Users/` nowhere); `test_answers_file_and_provenance` (`{"_commit", "_src_path", *DEFAULT_ANSWERS} <= answers.keys()`; `_commit` appears in `AGENTS.md`); `test_no_lockfiles_shipped`; `test_pins_agree` (workflows' `node-version: '26'`, `version: 0.11.18`, `rust-just==1.51.0`, `npm@11.17.0`, `uv python install 3.14` agree with `package.json` volta/engines and `.python-version`; `package.json` pins `@steven-cutting/biscuit-games` at `copier.yml`'s `hub_package_version`); `test_managed_pages_link_only_to_stable_pages`; `test_markdown_syntax_in_an_answer_is_refused` (one answer per rule the `game_name` and `description` validators hold against Markdown, each raising `ValueError`); `test_markdown_punctuation_inside_an_answer_is_accepted` (`C# Beans?` and a description carrying `_`, `*`, `#` and a code span render into the README verbatim).
 - `test_validators.py` (offline): both validators exit 0 on `git_render`; negative controls: appending `\nTODO: prove the gate reads this\n` to `docs/reference/commands.md` makes `validate_docs.py` exit 1 with "an unfinished marker" on stderr; deleting `.claude/skills/fix-quality/SKILL.md` makes `validate_agents.py` exit 1.
 - `test_questionnaire.py` (offline): `pytest.raises(ValueError, match="Validation error for question 'game_name'")` for `""`, `"x"`, `"Bad{Name}"`, `"a"*41`, `"tab\there"`, `"123"`; `game_slug` refused for `"Tic Tac"`, `"_leading"`, `"UPPER"`, `"a-b"`, `"a__b"`; `repository` refused for `"nogroup"`, `"-x/y"`, `"a/.git"`; `test_computed_defaults` (only `game_name` and `description` given → `game_slug == "tic_tac_toe_beans"`, `repository == "steven-cutting/tic_tac_toe_beans"`, `docs/specs/tic_tac_toe_beans.allium` exists, `brand.ts` reads `GAME_NAME = 'tic tac toe beans'` and `GAME_TITLE = 'Tic Tac Toe Beans'`).
 - `test_specs.py` (`network`): `install_allium.py` then `run_allium.py check` and `analyse` exit 0 in `git_render` (this is the test that the seed module exists and parses; `NO_INPUTS = 2` on an empty `docs/specs/`).

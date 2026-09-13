@@ -1,4 +1,8 @@
-"""The default render, inspected offline: inventory, residue, provenance and pins."""
+"""The default render, inspected offline: inventory, residue, provenance and pins.
+
+Also the answers the questionnaire refuses because the render's Markdown would read
+them as syntax.
+"""
 
 from __future__ import annotations
 
@@ -6,15 +10,19 @@ import json
 import re
 from fnmatch import fnmatchcase
 from posixpath import normpath
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote
 
 import pathspec
+import pytest
 import yaml
 
 from tests.conftest import DEFAULT_ANSWERS, TEMPLATE_ROOT
-from tests.helpers import Render, git
+from tests.helpers import Render, git, render_template
 from tests.inventory import MANAGED, SEED
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 TEMPLATE = TEMPLATE_ROOT / "template"
 ANSWERS_FILE = ".copier-answers.yml"
@@ -82,6 +90,25 @@ WORKFLOWS = (
 )
 # scripts/validate_docs.py `LINK`: an inline link that is not an image.
 LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+# One answer per rule the `game_name` and `description` validators hold against
+# Markdown (CONVENTIONS §3). Each passes every earlier check, and each made the
+# render's markdownlint fail or turned the answer into a heading, list or code block.
+MARKDOWN_ANSWERS = (
+    ("game_name", "Beans "),
+    ("game_name", "- Beans"),
+    ("game_name", "Tic <b>Beans</b>"),
+    ("game_name", "Tic [Beans][ref]"),
+    ("game_name", "Beans at www.example.com"),
+    ("game_name", "Beans!"),
+    ("game_name", "Beans C#"),
+    ("description", "    A three-in-a-row game played with beans."),
+    ("description", "# A puzzle game"),
+    ("description", "1. A three-in-a-row game"),
+    ("description", "A <b>bold</b> three-in-a-row game."),
+    ("description", "A [beans][ref] game played with beans."),
+    ("description", "A game at https://example.com for beans."),
+    ("description", "A beans game, mail beans@example.com today."),
+)
 
 
 def _copier_config() -> dict[str, Any]:
@@ -248,3 +275,22 @@ def test_managed_pages_link_only_to_stable_pages(default_render: Render) -> None
             if resolved not in managed_pages and not fnmatchcase(resolved, "docs/decisions/*.md"):
                 unstable.setdefault(page, []).append(raw)
     assert unstable == {}
+
+
+@pytest.mark.parametrize(("question", "value"), MARKDOWN_ANSWERS)
+def test_markdown_syntax_in_an_answer_is_refused(
+    tmp_path: Path, question: str, value: str
+) -> None:
+    with pytest.raises(ValueError, match=f"Validation error for question '{question}'"):
+        render_template(TEMPLATE_ROOT, tmp_path / "r", {**DEFAULT_ANSWERS, question: value})
+
+
+def test_markdown_punctuation_inside_an_answer_is_accepted(tmp_path: Path) -> None:
+    answers = {
+        **DEFAULT_ANSWERS,
+        "game_name": "C# Beans?",
+        "description": "A tic_tac_toe game on a 3*3 grid, the #1 pick for `beans`.",
+    }
+    render = render_template(TEMPLATE_ROOT, tmp_path / "r", answers)
+    heading = f"# {answers['game_name']}\n\n{answers['description']}\n"
+    assert render.read("README.md").startswith(heading)

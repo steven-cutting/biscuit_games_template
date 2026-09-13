@@ -2,5 +2,3 @@
 
 package-lock.json linguist-generated=true
 uv.lock linguist-generated=true
-
-src/lib/data/*.txt linguist-generated=true

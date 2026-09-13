@@ -12,6 +12,8 @@ are tags on `main`, and what each level means for a rendered game is stated in
 
 - The complete template tree, as a shape: every managed file is rendered from Poodl's
   copy or a stub, and the lane tickets under `tickets/` replace each one.
+- `.prettierignore` lists `.copier-answers.yml`, which Copier rewrites on every update,
+  and neither it, `.gitattributes` nor either prek config names Poodl's `src/lib/data/`.
 
 ### Seed
 
@@ -20,6 +22,11 @@ are tags on `main`, and what each level means for a rendered game is stated in
 ### Questionnaire
 
 - Four questions: `game_name`, `game_slug`, `description`, `repository`.
+- `game_name` and `description` refuse what the render's Markdown would read as
+  syntax: surrounding whitespace, a leading `#`, `>`, `-`, `+`, `*`, `_`, `~` or
+  backtick, a numbered-list start, `<`, square brackets, and a web or email address.
+  `game_name`, the README heading, also refuses a trailing `#`, `.`, `,`, `;`, `:` or
+  `!`.
 
 ### Update notes
 
