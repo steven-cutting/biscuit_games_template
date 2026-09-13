@@ -1,7 +1,7 @@
 ---
 id: T00
 title: "Foundation: copier.yml, template-repository tooling, harness core, manifest, map and stubs for every path"
-status: open
+status: done
 depends_on: []
 parallel_with: []
 branch: ticket/t00-foundation
@@ -1362,17 +1362,175 @@ Expected: `100755 ...`, and actionlint `Passed`.
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### What was verified, and how
 
-- What was verified and how: quote the output of every Verification command.
-- The confirmed Python pins (`mypy`, `pytest`, `pytest-timeout`, `types-PyYAML`,
-  `pathspec`) and whether any mypy override for `copier` was needed.
-- Any `[tool.typos.default.extend-words]` entry added for `tickets/`, and the word.
-- What deviated from the ticket and why (a stub that needed more than the smallest token
-  edit, a §7 file that had to change to pass a check, a count that differed).
-- What was handed back to another ticket (a page whose stub could not satisfy a §8 row,
-  a P line number that was wrong, a file a lane must know about).
-- Which open points were settled, with the observed result.
+Every Verification command, run on the committed tree (`45ce0b7`). Output is quoted; the
+one elision is marked.
+
+```text
+$ just sync && just check
+uv sync --frozen
+Checked 32 packages in 0.63ms
+uv lock --check
+Resolved 33 packages in 3ms
+uv run --frozen prek run --all-files
+[18 hook lines, every one ending Passed]
+uv run --frozen mypy
+Success: no issues found in 6 source files
+uv run --frozen pytest "$@"
+collected 12 items
+
+tests/test_render.py ........                                            [ 66%]
+tests/test_validators.py ....                                            [100%]
+
+============================== 12 passed in 2.36s ==============================
+
+$ uv run --frozen python -c 'from tests.inventory import MANAGED, SEED, GAME_EDITED; print(len(MANAGED), len(SEED), GAME_EDITED <= MANAGED)'
+101 24 True
+$ find template -type f | wc -l
+     126
+
+$ rm -rf ai_tmp/render && just render
+Rendered into ai_tmp/render
+$ git -C ai_tmp/render init -q -b main
+$ uv run --frozen python ai_tmp/render/scripts/validate_docs.py
+Validated 38 pages and 39 canonical topics.
+$ uv run --frozen python ai_tmp/render/scripts/validate_agents.py
+Validated AGENTS.md, 2 adapters, and 8 skills.
+
+$ grep -r -i -l -E 'poodl' template/ | sort
+template/AGENTS.md.jinja
+template/docs/decisions/0001-static-site-no-backend.md
+template/docs/decisions/0002-ports-and-fakes.md
+template/docs/decisions/0003-specs-are-the-source-of-truth.md
+template/docs/decisions/0004-python-toolchain.md
+template/docs/decisions/0005-component-workshop.md
+template/docs/decisions/0006-visual-review-in-chromatic.md
+template/docs/decisions/0007-project-managed-allium-cli.md
+template/docs/decisions/0008-design-system-as-a-package.md
+template/tests/platform.ts
+template/tests/restated.ts
+$ grep -r -i -E 'pnut|site-root|stage_site|stage-preview|word list|word-list|words\.allium|daily\.allium|sharing\.allium|statistics\.allium|foo/www|/Users/' template/ ; echo "exit=$?"
+exit=1
+
+$ git ls-files -s template/scripts/initialize.sh
+100755 4449c7b09c7ee93f5a8110f249d2977f0910183d 0 template/scripts/initialize.sh
+$ uv run --frozen prek run --all-files actionlint
+Lint GitHub Actions workflow files.......................................Passed
+```
+
+Also checked: the 57 verbatim-class copies under `template/` are byte-identical to P
+(`0a46a485`) and H (`09b4894a`) by `cmp` against `git show`; `copier.yml`, the §7 files,
+`tests/platform.ts`, the manifest and the map were extracted from their fences, not
+retyped; the rendered tree holds 126 files and its `.copier-answers.yml` carries the four
+default answers plus `_commit` and `_src_path`.
+
+### Python pins
+
+Confirmed with the Step 2 procedure (`>=`, `uv lock`, read `uv.lock`, pin, `uv lock`,
+`uv lock --check`):
+
+- `mypy==2.3.1` (the ticket's guess was 2.3.0)
+- `pytest==9.1.1`
+- `pytest-timeout==2.4.0`
+- `types-PyYAML==6.0.12.20260906` (the guess was 6.0.12.20250915)
+- `pathspec==1.1.1` (the guess was 0.12.1)
+
+`copier==9.18.2`, `PyYAML==6.0.3`, `prek==0.4.12` and `ruff==0.16.2` stay as written. No
+mypy override for `copier` was needed: `mypy --strict` reported nothing.
+
+### typos
+
+No `[tool.typos.default.extend-words]` entry was needed; typos passes over `tickets/` and
+`template/`.
+
+### Deviations, and why
+
+- **`just render`, in `Justfile` and CONVENTIONS.md §9, approved by the maintainer.** The
+  recipe as §9 gave it failed with `ValueError: Question "game_name" is required`:
+  `--defaults` cannot answer `game_name` or `description`, which carry a placeholder and
+  no default. The recipe now passes both with `--data`, spelt as `DEFAULT_ANSWERS` spells
+  them, and the slug and repository derive. §9's block changed in the same commit, so
+  `Justfile` still equals §9.
+- **`.prekignore`, new, outside the Files touched table.** Without it prek's workspace
+  mode discovers `template/.pre-commit-config.yaml` as a nested project and runs the
+  game's own hooks (ESLint, both validators, the allium gates) inside `template/`, where
+  none can pass. The file removes `template/` from project discovery only; the root hooks
+  still read every file under `template/`.
+- **EditorConfig.** `copier.yml`, which is frozen, indents its messages and wrapped Jinja
+  lines to odd columns, so `.editorconfig` gains a third section,
+  `[copier.yml] indent_size = unset`. And `template/.editorconfig`, Poodl's verbatim, says
+  `root = true`, so this repository's `[*.md.jinja]` and `[*.allium.jinja]` sections never
+  reach a file under `template/`: `template/AGENTS.md.jinja`'s list continuations failed.
+  The editorconfig-checker hook now excludes `^template/.*\.md\.jinja$`, and the render's
+  own gate checks those pages as the `.md` files they become. Confirmed with the hook's
+  binary: the same file passes beside the root `.editorconfig` alone and fails once
+  `template/.editorconfig` sits next to it.
+- **pathspec factory.** `test_inventory_matches_classification` builds its `PathSpec` with
+  `"gitignore"`, not `"gitwildmatch"`. pathspec 1.1.1 deprecates `gitwildmatch`, and copier
+  9.18.2 itself picks `"gitignore"` for pathspec 1.x (`copier/_main.py`,
+  `_pathspec_pattern`), so the test matches exactly what copier matches.
+- **The Step 7 code is not byte-identical to the ticket.** Ruff flagged three
+  annotation-only imports (TC003 `Iterator` in `tests/conftest.py`, TC003 `Path` in
+  `tests/helpers.py`, TC002 `pytest` in `tests/test_validators.py`), now under
+  `if TYPE_CHECKING:`. `ruff format` then reflowed `tests/helpers.py`,
+  `tests/inventory.py` and `tests/test_render.py` to one item per line; no value changed.
+- **`test_managed_pages_link_only_to_stable_pages` exempts `docs/README.md`.** The map is
+  managed but has to link the two seed project pages and `specs/<slug>.allium` to make
+  them reachable, so as Step 7 words it the test fails on the map. Every other managed page
+  is held to the rule.
+- **The two residue tests list sources with Git.** `git ls-files --cached --others
+  --exclude-standard template`, not a filesystem walk, because copier renders what Git
+  would add: a gitignored `__pycache__` is neither a source nor rendered.
+- **Small choices inside Step 10.** The two `.editorconfig` sections sit after `[*.md]`
+  and before `[Makefile]`. `svelte.config.js` lines 4-15 became two comment paragraphs: the
+  static-site sentence with "The game", then the §4 sentence. `tests/lockup.test.ts` and
+  `tests/route.test.ts` keep the `// tests/...` first line, because each §7 fence holds it
+  and T05 checks against exactly §7's text. The stub prose is fresh; decisions 0001 to 0008
+  open "Carried from Poodl's decision NNNN" with Poodl's own numbers (0006, 0008, 0011 and
+  0013 for 0005 to 0008).
+- **`just install-hooks` was not run.** In a linked worktree `prek install` writes to the
+  shared `.git/hooks`, which would give the main checkout and every other worktree a hook
+  bound to this worktree's virtual environment. Run it once T00 is on `main`.
+
+### Handed back
+
+- **T06 and T07.** The direct copier commands in `T06-seed-specification.md` (open points,
+  `--data 'game_name=Tic Tac Toe Beans '`) and `T07-handbook-a.md` (open points,
+  `-d 'description=A *marked* game.'`) each pass one of the two required answers, so each
+  stops with `Question "..." is required` until it passes the other.
+- **T10.** Ruff 0.16.2 formats Python blocks inside Markdown, so `ruff format --check .`
+  reports `tickets/T00-foundation.md` and `tickets/T10-harness-completion.md`, and
+  `just format` would rewrite them. `just lint` is unaffected: its hooks pass only Python
+  files. T10's embedded test code is not ruff-format clean and will need `just format`
+  when it lands in `tests/`.
+- **T01.** The root `[*.md.jinja]` and `[*.allium.jinja]` sections are inert under
+  `template/` (see EditorConfig above); a designed edit to `template/.editorconfig` should
+  not assume otherwise.
+- **CONVENTIONS.md §9, `pyproject.toml` paragraph.** It lists `tests/**` waivers as
+  `["PLR2004", "S101", "S603", "S607"]`; this ticket and the committed file add `S404`.
+  Harmless, but the two disagree.
+
+### Open points settled
+
+- **Python pins.** Confirmed, as above.
+- **pathspec matching.** `test_inventory_matches_classification` passes: every seed path
+  matches its pattern, `/docs/decisions/`, `/docs/specs/`, `/src/lib/components/` and
+  `/stories/` included, and no managed path matches any. `just render` produces all 24 seed
+  paths, so the empty rendered `_exclude` block is ignored on a copy.
+- **Cloning a linked worktree.** Copier clones this `.supacode` worktree without error. On
+  a clean tree the render's `_commit` is the worktree's HEAD (`45ce0b7`), not `main`'s
+  (`6ab0b13`); on a dirty tree copier commits the working tree into its clone and warns
+  `DirtyLocalWarning: Dirty template changes included automatically.` Copier's own
+  `clone` runs `git clone --no-checkout` and then `git checkout -f` (`copier/_vcs.py`),
+  the mechanism T10's `template_clone` fixture uses.
+- **`just lint` over `tickets/`.** typos flags nothing, and lychee resolves every link
+  `tickets/README.md` carries.
+- **The topic count.** The validator reports 39, not 40.
+  `grep -o 'canonical_for' template/docs/manifest.yml | wc -l` prints 38, and only
+  `project/purpose-and-scope.md` carries two slugs, so 38 + 1 = 39; the Verification
+  section's "39 slugs plus `project_non_goals`" counts that slug twice. The manifest is
+  right.
 
 ## Open points
 
