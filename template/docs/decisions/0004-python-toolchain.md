@@ -28,8 +28,9 @@ real Python that would otherwise go unlinted in a repository that gates everythi
 
 ## Consequences
 
-Contributors need `uv` as well as Node. `just initialize` installs both, and neither the
-application nor the published site contains any Python.
+Contributors need `uv` as well as Node, and both have to be installed before
+`just initialize`, which runs each of them to lock and install its own dependencies.
+Neither the application nor the published site contains any Python.
 
 The two contracts stay as they are, rather than being rewritten and re-debugged. That is
 most of the value: `validate_docs.py` and `validate_agents.py` are ported from a working

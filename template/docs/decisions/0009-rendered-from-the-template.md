@@ -76,9 +76,9 @@ game's own decisions start at 0011 and can never collide with one the template s
 
 ## Consequences
 
-**Managed pages say "this game" and never its name.** The name reaches the tree through
-`src/lib/brand.ts` and a few rendered pages, so a managed page carries no merge point for
-it.
+**Managed pages say "this game" rather than its name.** `AGENTS.md` and `docs/README.md`
+are the only managed pages that name it. Elsewhere in the handbook the name arrives
+through the seeds, so no other managed page carries a merge point for it.
 
 **Taking an update is a procedure, not a command.** Commit everything first, because an
 update refuses a dirty worktree. Run `uvx copier update --skip-answered`, resolve every

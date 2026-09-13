@@ -597,7 +597,7 @@ cannot run, say so in the hand-back notes and rely on the two offline checks abo
   exit 0. `npx prettier --check docs/decisions/` printed
   `All matched files use Prettier code style!`; `*.md` is in the render's `.prettierignore`.
 - A word-level `git diff --no-index` of each carried record against P's at `0a46a485`
-  shows only the edits steps 3 to 10 name.
+  shows only the edits steps 3 to 10 name, and in 0004 the review fix recorded below.
 
 **What deviated from the ticket and why.**
 
@@ -620,21 +620,36 @@ cannot run, say so in the hand-back notes and rely on the two offline checks abo
   workflow expression syntax would be read as Jinja in a `.jinja` file. One sentence is
   added to the `paths.base` consequence: a root-relative path works locally and breaks
   once published beneath the repository's name. The re-asked answer comes from §10.
+- Step 7, after review of the pull request: P's "`just initialize` installs both" is untrue
+  of `uv` and Node, since `scripts/initialize.sh` (P's and the template's alike) invokes
+  `uv` and `npm` before it installs anything. 0004 now says both have to be installed
+  first, and that `just initialize` runs each to lock and install its own dependencies.
+- Step 12, after review of the pull request: "managed pages say "this game" and never the
+  name" overstated CONVENTIONS.md §5, under which `AGENTS.md` and `docs/README.md` render
+  the name. 0009 names those two as the exceptions.
 - Kept verbatim as steps 5 and 8 direct, though they read slightly past a template game:
   0002 still says "no `navigator.clipboard` at all" and "both real code paths" while the
   template ships no clipboard port (CONVENTIONS.md §4 "Not shipped"); 0002 and 0005 still
   say "the domain" with no `src/lib/domain/` shipped; 0005 keeps the TypeScript 5.x and
   6.x detail. A game that finds one untrue edits its own seed copy.
-- No `CHANGELOG.md` entry for the seed change: no game has been rendered before `v0.1.0`,
-  this ticket touches no other file, and the changelog is T12's.
+- A `CHANGELOG.md` bullet under Seed, though CONVENTIONS.md §11 limits a lane to its
+  listed files: `AGENTS.md` requires every seed change to be recorded there, review of the
+  pull request asked for it, and one bullet appended to the Seed list is the whole change.
 - The ticket's `branch:` is `ticket/t09-decisions`; the worktree was created on
   `T09-decisions`, and the commit is there.
 
 **What was handed back to another ticket.**
 
-- Nothing. The manifest's eleven entries already equal the frontmatter, every link target
-  is a shipped page (the validator's link check passed in the render), and no allowlist
-  in `tests/test_render.py` needs to change.
+- To T03: 0006's no-token paragraph (step 9) describes the hub's token guard, which T03
+  step 3 grafts into `template/.github/workflows/chromatic.yml`. Until T03 merges, the
+  shipped workflow runs `just chromatic` unguarded, so a game with no
+  `CHROMATIC_PROJECT_TOKEN` gets a failed run rather than the skip 0006 promises. T03's
+  verification (`if: steps.token.outputs.present == 'true'` on the publish step and
+  `PUBLISHED` in the report step) is what makes the record true; the workflow is not this
+  lane's file.
+- Nothing else. The manifest's eleven entries already equal the frontmatter, every link
+  target is a shipped page (the validator's link check passed in the render), and no
+  allowlist in `tests/test_render.py` needs to change.
 - The `just initialize` abort is `stories/Lockup.stories.svelte` line 83, T05's file
   (step 9 and its `FRAME_WIDTH`). T00's hand-back notes already record the same ESLint
   error, so no new hand-back is raised; the networked documentation check was completed by
