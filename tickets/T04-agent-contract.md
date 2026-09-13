@@ -1,7 +1,7 @@
 ---
 id: T04
 title: "Agent contract: AGENTS.md, CLAUDE.md, eight skills and sixteen bridges"
-status: open
+status: done
 depends_on: [T00]
 parallel_with: [T01, T02, T03, T05, T06, T07, T08, T09]
 branch: ticket/t04-agent-contract
@@ -415,16 +415,253 @@ Expected: after the commit, empty; before it, only paths from the Files touched 
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### What was verified, and how
 
-- What was verified and how: paste the output of every Verification block, including
-  the word count and the `_commit` value the render recorded.
-- What deviated from the ticket and why (a line number in P that did not match, a
-  validator rule that read differently, a wording changed to pass a gate).
-- What was handed back to another ticket: anything found in `scripts/validate_agents.py`
-  (T02), `docs/reference/agent-contract.md` (T08), the template repository's own
-  `pyproject.toml` or `.markdownlint-cli2.jsonc` (T00 follow-up on `main`).
-- Which open points below were settled, with the command run and what it printed.
+Every command ran in this worktree, from `main` at `7e2f9d9`. The template changes are
+commit `b58871b`; these notes and the `status:` line follow in a second commit. Output is
+quoted; elisions are marked.
+
+T00 had already shipped 21 of the 26 files in final form: `template/CLAUDE.md`, the four
+verbatim skills and all sixteen bridges were `cmp`-equal to P before any change, so the
+`cp` steps for them had nothing to change and were not run. The `cmp` block below is the
+proof. T00's `AGENTS.md.jinja` already carried the five edits, and its four edited skills
+were still P's text. The ticket's changes are therefore the step edits in
+`accessibility-review`, `review-docs`, `spec-change` and `svelte-change`, and one line
+wrap in `AGENTS.md.jinja` (see Deviations):
+
+```text
+$ git diff --stat 7e2f9d9 HEAD
+ template/.agents/skills/accessibility-review/SKILL.md |  6 +++---
+ template/.agents/skills/review-docs/SKILL.md          | 11 ++++++-----
+ template/.agents/skills/spec-change/SKILL.md          |  4 ++--
+ template/.agents/skills/svelte-change/SKILL.md        |  4 ++--
+ template/AGENTS.md.jinja                              |  4 ++--
+ 5 files changed, 15 insertions(+), 14 deletions(-)
+```
+
+The new content was built by a script from P's files and this ticket's embedded blocks
+rather than typed. The four skills were also built a second way, by applying the
+substring substitutions `CONVENTIONS.md §7` states to P's files; the two builds were
+equal for all four.
+
+Sources at the pinned commits, and the baseline before any change:
+
+```text
+$ git -C /Users/scutting/projects/poodl rev-parse HEAD
+0a46a485da4e85aed878df8dd47a0c738e7c87e2
+$ git -C /Users/scutting/projects/biscuit_games rev-parse HEAD
+09b4894a5d3328858d7dc52560422c127dff5399
+$ just test
+[... session header elided ...]
+tests/test_render.py .......................                             [ 79%]
+tests/test_specs.py ss                                                   [ 86%]
+tests/test_validators.py ....                                            [100%]
+[... skip reasons elided ...]
+======================== 27 passed, 2 skipped in 10.11s ========================
+```
+
+`AGENTS.md.jinja` against P, hunk headers only. Every hunk lies inside the five edits'
+line ranges. Provenance shows as two hunks because P's line 151 is blank, and so is the
+line that ends the replacement's first paragraph:
+
+```text
+$ diff /Users/scutting/projects/poodl/AGENTS.md template/AGENTS.md.jinja | grep '^[0-9]'
+10,12c10,13
+36,39c37,40
+50,51c51,52
+68,70c69,71
+147,150c148,155
+152,189c157,172
+```
+
+The gate, on the tree `b58871b` records:
+
+```text
+$ just check
+uv lock --check
+Resolved 33 packages in 3ms
+uv run --frozen prek run --all-files
+Ruff lint................................................................Passed
+Ruff format check........................................................Passed
+check for added large files..............................................Passed
+check for case conflicts.................................................Passed
+check that executables have shebangs.....................................Passed
+check json...............................................................Passed
+check for merge conflicts................................................Passed
+check that scripts with shebangs are executable..........................Passed
+check toml...............................................................Passed
+check yaml...............................................................Passed
+detect private key.......................................................Passed
+EditorConfig.............................................................Passed
+markdownlint.............................................................Passed
+typos....................................................................Passed
+lychee...................................................................Passed
+shellcheck...............................................................Passed
+Lint GitHub Actions workflow files.......................................Passed
+ripsecrets...............................................................Passed
+uv run --frozen mypy
+Success: no issues found in 7 source files
+uv run --frozen pytest "$@"
+[... session header elided ...]
+collected 29 items
+
+tests/test_render.py .......................                             [ 79%]
+tests/test_specs.py ss                                                   [ 86%]
+tests/test_validators.py ....                                            [100%]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_specs.py:26: set BISCUIT_TEMPLATE_NETWORK=1
+SKIPPED [1] tests/test_specs.py:34: set BISCUIT_TEMPLATE_NETWORK=1
+======================== 27 passed, 2 skipped in 10.20s ========================
+```
+
+The render, from the clean tree after `b58871b`. T02 has merged, so `cmp` is silent and
+no copy of H's script was needed:
+
+```text
+$ rm -rf ai_tmp/t04-render
+$ just render ai_tmp/t04-render
+[... recipe echo elided ...]
+Rendered into ai_tmp/t04-render
+$ cmp ai_tmp/t04-render/scripts/validate_agents.py /Users/scutting/projects/biscuit_games/scripts/validate_agents.py
+$ git -C ai_tmp/t04-render init -q -b main
+$ uv run --frozen python ai_tmp/t04-render/scripts/validate_agents.py; echo "exit $?"
+Validated AGENTS.md, 2 adapters, and 8 skills.
+exit 0
+```
+
+```text
+$ wc -w ai_tmp/t04-render/AGENTS.md
+    1354 ai_tmp/t04-render/AGENTS.md
+$ grep -ci poodl ai_tmp/t04-render/AGENTS.md
+1
+$ grep -n -i -E 'pnut|site-root|stage_site|stage-preview|word list|foo/www|/Users/' ai_tmp/t04-render/AGENTS.md
+$ grep -rli poodl ai_tmp/t04-render/.agents ai_tmp/t04-render/.claude ai_tmp/t04-render/.codex; echo "exit $?"
+exit 1
+$ grep -cE '\{\{|\{%|\{#' ai_tmp/t04-render/AGENTS.md
+0
+$ grep -o '_commit: .*' ai_tmp/t04-render/.copier-answers.yml
+_commit: b58871b
+$ grep -n 'Rendered by Copier' -A1 ai_tmp/t04-render/AGENTS.md
+148:Rendered by Copier from the `biscuit_games_template` template
+149-(<https://github.com/steven-cutting/biscuit_games_template>) at `b58871b`.
+```
+
+The rendered opening paragraph, and the render's own markdownlint and typos hooks over
+the rendered agent files (the template repository's markdownlint never reads
+`AGENTS.md.jinja`; its render's does):
+
+```text
+$ sed -n 10,13p ai_tmp/t04-render/AGENTS.md
+Tic Tac Toe Beans is a Biscuit Games game: A three-in-a-row game played with beans.
+It is a single-page static web app with no backend, no accounts and no server,
+built on the platform package `@steven-cutting/biscuit-games` and deployed to GitHub Pages
+at <https://steven-cutting.github.io/tic_tac_toe_beans/>.
+$ cd ai_tmp/t04-render && prek run markdownlint-cli2 --files AGENTS.md CLAUDE.md .agents/skills/*/SKILL.md .claude/skills/*/SKILL.md .codex/skills/*/SKILL.md
+markdownlint.............................................................Passed
+$ prek run typos --files AGENTS.md CLAUDE.md .agents/skills/*/SKILL.md
+typos....................................................................Passed
+```
+
+Byte identity with P, on the tree `b58871b` records:
+
+```text
+$ cmp "$P/CLAUDE.md" template/CLAUDE.md
+$ for n in code-review fix-quality plan-change project-check; do cmp ...; done
+$ for d in .claude .codex; do for n in <the eight>; do cmp ...; done; done
+$ for n in accessibility-review review-docs spec-change svelte-change; do diff ... | grep -c '^[<>]'; done
+6
+11
+4
+4
+$ wc -c template/CLAUDE.md
+      11 template/CLAUDE.md
+$ ls template/.agents/skills template/.claude/skills template/.codex/skills
+template/.agents/skills:
+accessibility-review
+code-review
+fix-quality
+plan-change
+project-check
+review-docs
+spec-change
+svelte-change
+
+template/.claude/skills:
+accessibility-review
+code-review
+fix-quality
+plan-change
+project-check
+review-docs
+spec-change
+svelte-change
+
+template/.codex/skills:
+accessibility-review
+code-review
+fix-quality
+plan-change
+project-check
+review-docs
+spec-change
+svelte-change
+```
+
+Every `cmp` was silent. Lines 1-4 of the four edited skills, their frontmatter, are
+equal to P's. A `find` over the three roots lists the 24 `SKILL.md` files and
+`template/.claude/settings.json` (T02's, tolerated by the validator) and nothing else.
+Before the first commit `git status --porcelain` listed only the five paths above; after
+it, nothing.
+
+### Deviations
+
+- The work is on branch `T04-agent-contract`, the branch the Supacode worktree was
+  created on, not `ticket/t04-agent-contract` as the frontmatter says; T01 and T02 were
+  named the same way. Rename the branch before pushing if it must match the field.
+- T00's copies of 21 files were already final (above); no `cp` was run for them.
+- `AGENTS.md.jinja` invariant 3: T00's stub had the ticket's words but broke the line
+  after `the device's` rather than after `the`. It now matches the ticket's block. The
+  rendered Markdown reads the same either way.
+- The punctuation open point's command, as written, exits 1 with
+  `ValueError: Question "game_name" is required`, because `game_name` has no default. It
+  was run with `--data game_name="Tic Tac Toe Beans"` added.
+- `CHANGELOG.md` was not edited: every change is to a managed file, and no seed changed.
+
+### Handed back
+
+- T08: `template/docs/reference/agent-contract.md` is still T00's stub (one paragraph, no
+  bridge rule yet). When writing it, take H's "What a bridge must be" section, not P's
+  "at most forty words" (see Open points).
+- T02: nothing. The shipped `scripts/validate_agents.py` is `cmp`-equal to H's, and it
+  read as the ticket's Prepare step 3 describes.
+- T00 follow-up on `main`: nothing. The shipped skills pass markdownlint and typos at
+  source under T00's configuration, and no `extend-words` entry was needed.
+- `tickets/README.md`'s index still shows T04 as `open`. That file says the frontmatter
+  is authoritative and the table a snapshot, and it is outside this ticket's files, so
+  the table was not edited.
+
+### Open points
+
+- The bridge rule the handbook states: not settled, since T08 has not merged.
+  `grep -n forty template/docs/reference/agent-contract.md` prints nothing today only
+  because the page is a stub. Check after T08 merges, with the render grep this ticket
+  names.
+- `_commit` before the first tag: settled for now. Copier records
+  `git describe --tags --always`, which prints `b58871b` here, and the Provenance line
+  carries `b58871b` (above). A render made from a dirty tree records the throwaway commit
+  copier makes instead: the render before `b58871b` recorded `e79c373`, and its
+  Provenance line agreed. `test_answers_file_and_provenance` holds the two together
+  either way. T11's tag replaces the hash.
+- A description that does not end in a full stop: confirmed, and cosmetic. Not fixed here:
+
+  ```text
+  $ uv run --frozen copier copy --defaults --data game_name="Tic Tac Toe Beans" --data 'description=A game with beans!' --vcs-ref=HEAD --quiet . ai_tmp/t04-punct
+  $ sed -n 10p ai_tmp/t04-punct/AGENTS.md
+  Tic Tac Toe Beans is a Biscuit Games game: A game with beans!.
+  ```
+
+- The shipped skills are linted at source: settled. `just lint` (inside `just check`,
+  above) passed markdownlint and typos over the edited skills, `Announcer` included.
 
 ## Open points
 
