@@ -23,10 +23,10 @@ REQUIRED_FIELDS = {"path", "title", "kind", "audience", "canonical_for", "requir
 METADATA_FIELDS = {"title", "kind", "audience", "canonical_for", "requires"}
 KINDS = {"project", "tutorial", "how-to", "explanation", "reference", "operations", "decision"}
 AUDIENCES = {"user", "contributor", "maintainer", "operator", "agent"}
-# Biscuit Games is generated from no template and has no feature toggles, so no page is
-# conditional on one. The machinery is kept rather than deleted: `requires` is
-# still parsed and compared, so adding a predicate later is a one-line change
-# here rather than a reshaping of the manifest.
+# This game is generated from the Biscuit Games template and has no feature
+# toggles, so no page is conditional on one. The machinery is kept rather than
+# deleted: `requires` is still parsed and compared, so adding a predicate later
+# is a one-line change here rather than a reshaping of the manifest.
 PREDICATES: set[str] = set()
 ENABLED: set[str] = set()
 MINIMUM_WORDS = 40

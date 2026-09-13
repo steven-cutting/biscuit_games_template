@@ -1,7 +1,7 @@
 ---
 id: T02
 title: "Scripts: the validators, installers and checkers the render ships"
-status: open
+status: done
 depends_on: [T00]
 parallel_with: [T01, T03, T04, T05, T06, T07, T08, T09]
 branch: ticket/t02-scripts
@@ -387,18 +387,185 @@ second command reports `2 passed`; the last two exit 0 (`All checks passed!` and
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### What was verified, and how
 
-- What was verified and how: the output of every Verification block, quoted.
-- The outcome of `BISCUIT_TEMPLATE_NETWORK=1 just test tests/test_specs.py`: green, or the
-  assertion message quoted whole, with the diagnostics if the seed module was rejected.
-- What deviated from the ticket and why (a helper signature that differed from
-  CONVENTIONS.md §9, an import style other than step 7's, a stub T00 had already shipped
-  in final form).
-- What was handed back and to whom: T06 (seed module diagnostics), T00 follow-up on
-  `main` (`[tool.mypy] files` not covering `template/scripts`, a missing helper), T01 (a
-  caller that names a recipe or script differently from P).
-- Which open points were settled, with the command and its output.
+Every command ran in this worktree, from `main` at `3db0adb`, on the tree this ticket's
+commit records (the notes and the `status:` line excepted). Output is quoted; elisions
+are marked, and the tab `git ls-files -s` prints before the path is written as a space
+because markdownlint refuses hard tabs.
+
+T00 had already shipped eight of the nine files in final form and `initialize.sh` at
+`100755`, so steps 3, 4 and 6 had nothing to change and were not run; the `cmp` calls
+below are the proof. The ticket's two edits are the comment in `validate_docs.py` and
+the new `tests/test_specs.py`.
+
+Sources at the pinned commits, and T00's baseline (step 1), before any change:
+
+```text
+$ git -C /Users/scutting/projects/poodl rev-parse --short HEAD
+0a46a48
+$ git -C /Users/scutting/projects/biscuit_games rev-parse --short HEAD
+09b4894
+$ just test
+[... session header elided ...]
+tests/test_render.py .......................                             [ 85%]
+tests/test_validators.py ....                                            [100%]
+
+============================== 27 passed in 9.70s ==============================
+```
+
+Byte identity with the sources:
+
+```text
+same as H: validate_agents.py
+same as H: initialize.sh
+same as H: install_allium.py
+same as P: run_allium.py
+same as P: run_project_check.py
+same as P: run_ripsecrets_redacted.py
+same as P: check_playwright_browsers.js
+same as P: settings.json
+26,29c26,29
+< # Biscuit Games is generated from no template and has no feature toggles, so no page is
+< # conditional on one. The machinery is kept rather than deleted: `requires` is
+< # still parsed and compared, so adding a predicate later is a one-line change
+< # here rather than a reshaping of the manifest.
+---
+> # This game is generated from the Biscuit Games template and has no feature
+> # toggles, so no page is conditional on one. The machinery is kept rather than
+> # deleted: `requires` is still parsed and compared, so adding a predicate later
+> # is a one-line change here rather than a reshaping of the manifest.
+```
+
+The mode, in git and in a render (steps 6 and 10, with step 10's `cmp`):
+
+```text
+$ git ls-files -s template/scripts/initialize.sh
+100755 4449c7b09c7ee93f5a8110f249d2977f0910183d 0 template/scripts/initialize.sh
+$ rm -rf ai_tmp/t02-render && just render ai_tmp/t02-render
+[... copier's DirtyLocalWarning elided ...]
+Rendered into ai_tmp/t02-render
+$ test -x ai_tmp/t02-render/scripts/initialize.sh && echo executable
+executable
+$ cmp ai_tmp/t02-render/scripts/run_allium.py template/scripts/run_allium.py && echo verbatim
+verbatim
+```
+
+The gate:
+
+```text
+$ just check
+uv lock --check
+Resolved 33 packages in 3ms
+uv run --frozen prek run --all-files
+Ruff lint................................................................Passed
+Ruff format check........................................................Passed
+check for added large files..............................................Passed
+check for case conflicts.................................................Passed
+check that executables have shebangs.....................................Passed
+check json...............................................................Passed
+check for merge conflicts................................................Passed
+check that scripts with shebangs are executable..........................Passed
+check toml...............................................................Passed
+check yaml...............................................................Passed
+detect private key.......................................................Passed
+EditorConfig.............................................................Passed
+markdownlint.............................................................Passed
+typos....................................................................Passed
+lychee...................................................................Passed
+shellcheck...............................................................Passed
+Lint GitHub Actions workflow files.......................................Passed
+ripsecrets...............................................................Passed
+uv run --frozen mypy
+Success: no issues found in 7 source files
+uv run --frozen pytest "$@"
+[... session header elided ...]
+collected 29 items
+
+tests/test_render.py .......................                             [ 79%]
+tests/test_specs.py ss                                                   [ 86%]
+tests/test_validators.py ....                                            [100%]
+[... copier's DirtyLocalWarning, 16 times, elided ...]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_specs.py:26: set BISCUIT_TEMPLATE_NETWORK=1
+SKIPPED [1] tests/test_specs.py:34: set BISCUIT_TEMPLATE_NETWORK=1
+================= 27 passed, 2 skipped, 16 warnings in 10.80s ==================
+```
+
+The scripts on their own (step 9):
+
+```text
+$ uv run --frozen ruff check template/scripts tests
+All checks passed!
+$ uv run --frozen ruff format --check template/scripts tests
+13 files already formatted
+$ uv run --frozen mypy --strict template/scripts
+Success: no issues found in 6 source files
+```
+
+And the whole suite as CI's `fast` job runs it, with the network gate on:
+
+```text
+$ BISCUIT_TEMPLATE_NETWORK=1 just test
+tests/test_render.py .......................                             [ 79%]
+tests/test_specs.py ..                                                   [ 86%]
+tests/test_validators.py ....                                            [100%]
+======================= 29 passed, 16 warnings in 11.79s =======================
+```
+
+### The network test
+
+Green. Both downloads verified their checksums, `check` and `analyse` reported the seed
+module clean, and the negative control exited 1 with the refusal on stderr:
+
+```text
+$ BISCUIT_TEMPLATE_NETWORK=1 just test tests/test_specs.py
+uv run --frozen pytest "$@"
+[... session header elided ...]
+collected 2 items
+
+tests/test_specs.py ..                                                   [100%]
+[... copier's DirtyLocalWarning elided ...]
+========================= 2 passed, 1 warning in 3.62s =========================
+```
+
+### Deviations
+
+- The work is on branch `T02-scripts`, the branch the Supacode worktree was created on,
+  not `ticket/t02-scripts` as the frontmatter says. The T01 and T09 worktrees are named
+  the same way. Rename the branch before pushing if it must match the field.
+- T00's copies were already final; see above. No `cp` was run.
+- None in step 7: `tests/__init__.py` exists and `test_validators.py` imports
+  `from tests.helpers import ...`, so the body is the ticket's, verbatim.
+- `CHANGELOG.md` is not in the Files touched table and was not edited. The comment edit
+  is to a managed file and reaches games on update; no seed file changed.
+
+### Handed back
+
+- T00 follow-up on `main`: `pyproject.toml` lines 37-40 set `[tool.mypy] files = ["tests"]`,
+  so `just typecheck` checks the seven files under `tests/` and none of the scripts.
+  Adding `"template/scripts"` to that list is enough: `mypy --strict template/scripts`
+  already passes.
+- T06: nothing. The seed module is clean under allium 3.6.1.
+- T01: nothing. Every `scripts/` path in `template/Justfile`,
+  `template/.pre-commit-config.yaml` and `template/package.json.jinja` names a shipped
+  script, and every name in `run_project_check.py`'s `RECIPES` is a recipe in
+  `template/Justfile` (checked by parsing both; none missing).
+- `tickets/README.md`'s index still shows T02 as `open`. That file says the frontmatter
+  is authoritative and the table a snapshot, and it is outside this ticket's files, so
+  the table was not edited.
+
+### Open points
+
+- The seed module parses: settled. `test_seed_module_is_clean` passed (above).
+- `[tool.mypy] files` covers `template/scripts`: settled, it does not. Carried forward
+  as the T00 follow-up above; step 9's explicit strict run is green.
+- `run_script` returns `CompletedProcess[str]` with `text=True`: settled, yes
+  (`tests/helpers.py`, `run_script`), so step 7's assertions are unchanged.
+- GitHub Releases reachable from the `fast` job: not settled. It was reachable from this
+  machine; the first pull request run of `ci.yml`, after an authorised push, settles it.
+- `core.fileMode`: settled, `git config core.fileMode` prints `true`, and the index
+  already recorded `100755` from T00, so `update-index --chmod=+x` was not needed.
 
 ## Open points
 
