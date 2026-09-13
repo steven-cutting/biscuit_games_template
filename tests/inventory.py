@@ -1,4 +1,10 @@
-"""The managed/seed classification of every rendered path: the single source."""
+"""The classification of every rendered path, and the single source of it.
+
+`MANAGED` is re-rendered into a game on `copier update` and merged with the game's edits.
+`SEED` is rendered once and never touched again. `GAME_EDITED` is the managed subset a game
+is expected to edit (CONVENTIONS §5). `.copier-answers.yml` is Copier's and in none of them.
+`tests/test_render.py`, `tests/test_update.py` and C06's impact check read all three.
+"""
 
 from __future__ import annotations
 
