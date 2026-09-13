@@ -323,15 +323,24 @@ to change, the exact diagnostic and the edit are recorded with it.
 
    const SPECS = resolve(process.cwd(), 'docs', 'specs');
 
-   /** Every module this game keeps, which is what `just check-specs` reads. */
+   /** Every module this game keeps, at any depth, which is what `just check-specs` reads. */
    function gameModules(): string[] {
-     return readdirSync(SPECS)
+     return readdirSync(SPECS, { encoding: 'utf8', recursive: true })
        .filter((name) => name.endsWith('.allium'))
        .sort();
    }
 
    function gameModule(name: string): string {
      return readFileSync(resolve(SPECS, name), 'utf8');
+   }
+
+   /** The root module, named after this game as `package.json` is. */
+   function rootModule(): string {
+     const { name } = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8')) as {
+       name: string;
+     };
+
+     return `${name}.allium`;
    }
 
    /** Which platform module states each figure, and what `config.ts` mirrors it as. */
@@ -383,11 +392,17 @@ to change, the exact diagnostic and the edit are recorded with it.
 
      it.each(FIGURES)('agrees with $module on config.$figure', ({ figure, module, mirrored }) => {
        const platform = figures(platformFile(`specs/${module}`)).get(figure);
+       const root = rootModule();
 
        expect(platform, `${module} no longer states ${figure}`).toBeDefined();
        expect(mirrored, `src/lib/config.ts disagrees with ${module} on ${figure}`).toBe(platform);
-       // A game module states a platform figure only where it has a surface for
-       // it; where it does, it states the same value.
+       // The root module states every platform figure. Another module states one
+       // only where it has a surface for it, and every module that states one
+       // states the same value.
+       expect(
+         figures(gameModule(root)).get(figure),
+         `${root} no longer states ${figure}`
+       ).toBeDefined();
        for (const name of gameModules()) {
          const stated = figures(gameModule(name)).get(figure);
          if (stated !== undefined) {
@@ -626,6 +641,22 @@ Prettier's width. `template/tests/platformSpecs.test.ts` is now byte-equal to th
 Its lines 43-106 equal P lines 37-100, and its version case equals P lines 181-194
 (both `diff` empty).
 
+Pull request 8's review then changed two things in the figure case, and step 3's text
+took both, so the file and that text are still byte-equal (`cmp`) and both `diff`
+results above are still empty. `gameModules()` listed only the top of `docs/specs/`,
+which `run_allium.py`'s `_modules()` and allium walk recursively, so a module at
+`docs/specs/sub/extra.allium` stating `minimum_touch_target: Integer = 40` left all ten
+cases green; it now lists the whole tree. And the loop skipped any module that did not
+state a figure, the root module included, so deleting the root module's
+`minimum_mark_separation` line also left all ten green; the root module,
+`<package.json name>.allium`, must now state every figure. In the render, each probe now
+fails its one case:
+
+```text
+AssertionError: sub/extra.allium disagrees with operation.allium on minimum_touch_target: expected 40 to be 44 // Object.is equality
+AssertionError: tic_tac_toe_beans.allium no longer states minimum_mark_separation: expected undefined to be defined
+```
+
 ### Step 2: the module
 
 `template/docs/specs/{{ game_slug }}.allium.jinja` differs from the step 2 text on line
@@ -768,6 +799,8 @@ $ npx vitest run --config vite.config.ts tests/platformSpecs.test.ts --reporter=
 No `states ... exactly as` case was registered: `it.each` over the empty `RESTATED`
 table is a no-op under Vitest 4.1.10, as CONVENTIONS.md §7 says. The render pins
 `@steven-cutting/biscuit-games` at `1.0.0`, and `1.0.0` is installed.
+The run after pull request 8's change (Outcome) registers the same ten cases, and all
+ten pass.
 
 ### Step 8: `just check`
 
@@ -812,6 +845,10 @@ request on `main`, not here.
 - The work is on branch `T06-seed-specification`, the name the Supacode worktree was
   created with, not `ticket/t06-seed-specification` as the frontmatter says (T02 did the
   same). Rename it before pushing if it must match the field.
+- `template/tests/platformSpecs.test.ts` and step 3's text changed after review on pull
+  request 8 (Outcome). The root module is found by `package.json`'s `name`, not written
+  into the test: the test is managed and carries no Jinja, and `copier.yml` gives
+  `game_slug` as the name of the package and of the root module alike.
 - `CHANGELOG.md` was not edited. It is not in Files touched, the test is managed rather
   than seed, and the seed module did not change.
 
@@ -832,6 +869,9 @@ request on `main`, not here.
   CONVENTIONS.md §7's `tests/platformSpecs.test.ts` code block with the step 3 text:
   that block has no header comment and is not wrapped to Prettier, so a file spliced from
   it repeats T00's error.
+  Step 3's text now carries pull request 8's changes, and §7's prose wants them too:
+  `gameModules()` reads every `.allium` under `docs/specs/`, and the root module states
+  every figure while another module states one only where it has a surface for it.
 - T01, T02: nothing. The render's recipes and both scripts ran as designed, and
   `run_allium.py` and `install_allium.py` equal P's and H's respectively (`diff` empty).
 - T05's `src/lib/config.ts` and `tests/restated.ts`: nothing. The six constants equal
@@ -846,6 +886,9 @@ request on `main`, not here.
   does not ignore `tests/`. The whole-tree `eslint . --fix` in `initialize.sh` reported
   one problem, in the story above, and none in this file. Prettier with the render's own
   `.prettierrc.json` also passed: `npx prettier --check tests/platformSpecs.test.ts`.
+  Pull request 8's lines (`rootModule()`, the recursive `readdirSync` and the root-module
+  assertion) ran the same way in the render: `npx eslint`, `npx prettier --check` and
+  `npx tsc --noEmit -p tsconfig.json`, whose file list includes this test, each exited 0.
 - `uv lock` in a render before T01 merged: moot, T01 has merged. `uv lock` resolved 3
   packages and the recipes ran.
 - A `game_name` with trailing whitespace: settled, it cannot reach the module. The
