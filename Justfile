@@ -48,9 +48,14 @@ check: lock-check lint typecheck test
 
 # A render to look at, with default answers, from the working tree: dirty
 # changes are included (copier stages them into a throwaway commit and says so).
+# `game_name` and `description` have no default, so they are passed as
+# tests/conftest.py's DEFAULT_ANSWERS spells them; the other answers derive.
 render dest="ai_tmp/render":
     test ! -e "$1" || { printf '%s\n' "$1 exists; remove it first" >&2; exit 2; }
-    uv run --frozen copier copy --defaults --vcs-ref=HEAD --quiet . "$1"
+    uv run --frozen copier copy --defaults --vcs-ref=HEAD --quiet \
+        --data game_name="Tic Tac Toe Beans" \
+        --data description="A three-in-a-row game played with beans." \
+        . "$1"
     printf '%s\n' "Rendered into $1"
 
 # Interactive: asks the questionnaire and renders a new game into dest from the
