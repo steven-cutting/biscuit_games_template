@@ -1,7 +1,7 @@
 ---
 id: T03
 title: "Workflows: ci.yml, chromatic.yml, pages.yml and the Copilot adapter"
-status: open
+status: done
 depends_on: [T00]
 parallel_with: [T01, T02, T04, T05, T06, T07, T08, T09]
 branch: ticket/t03-workflows
@@ -457,18 +457,227 @@ only if step 5 copied it.
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### What was verified, and how
 
-- What was verified and how: quote the output of every Verification command, including
-  the four diff signatures, the sha256, the `just lint` hook list and the standalone
-  actionlint summary.
-- Whether step 5 changed `template/.github/copilot-instructions.md` (it should not
-  have; say what T00's placeholder was if it did).
-- What deviated from the ticket and why.
-- What was handed back to another ticket: any test change needed in
-  `tests/test_render.py` (T00 follow-up), any Justfile need (T01), anything about the
-  gate's hook configuration (T00 follow-up).
-- Which open points were settled, and what stays open for T11.
+Both clones were at their pinned commits (`git rev-parse --short=8 HEAD` printed
+`0a46a485` and `09b4894a`). Before any edit, `just sync && just test` printed `27 passed`,
+and T00's placeholders stood so: `ci.yml` and `chromatic.yml` equal to P's (`diff`
+printed nothing), `pages.yml` equal to the block step 4's `awk` extracts from
+CONVENTIONS.md §7 (`cmp` printed nothing, and that block is `cmp`-equal to step 4's), and
+`copilot-instructions.md` equal to P's. Steps 2 and 3 then wrote `ci.yml` and
+`chromatic.yml` with this ticket's commands. Every command below ran on the edited tree;
+output is quoted, and each elision is marked with square brackets.
+
+The diff signatures, with `P`, `H` and `W` set as in step 1:
+
+```text
+$ diff "$P/ci.yml" "$W/ci.yml"
+58c58
+<       # No token: a dry run against a complete lockfile reads the registry
+---
+>       # No token: the dry run against a complete lockfile reads the registry
+60,61c60,61
+<       # npm's configuration at all.
+<       - run: npm ci --ignore-scripts --dry-run --no-audit
+---
+>       # npm's configuration at all, and `uv lock --check` reads no registry.
+>       - run: just lock-check
+$ diff "$P/chromatic.yml" "$W/chromatic.yml" | grep -E '^[0-9]'
+221a222,239
+226a245
+238a258
+244,245c264,282
+247c284
+$ diff "$H/chromatic.yml" "$W/chromatic.yml" | grep -E '^[0-9]'
+3,7c3,5
+171a170,178
+187a195,203
+199a216,220
+$ diff "$P/pages.yml" "$W/pages.yml" | grep -E '^[0-9]'
+16,20c16,20
+22c22
+66,67d65
+70,72c68,70
+$ wc -l "$W"/*.yml
+     286 template/.github/workflows/chromatic.yml
+     167 template/.github/workflows/ci.yml
+      81 template/.github/workflows/pages.yml
+     534 total
+```
+
+The whole of `diff "$H/chromatic.yml" "$W/chromatic.yml"` is `cmp`-equal to the block in
+step 3 (this file's lines 167-202 with the list indentation dropped). `chromatic.yml`
+line 245 is `if: steps.token.outputs.present == 'true'` on the publish step, and line
+258 is `PUBLISHED: ${{ steps.token.outputs.present }}` in the report step's `env`.
+`pages.yml` lines 21-22 are `env:` and `BASE_PATH: /${{ github.event.repository.name }}`,
+line 70 is `path: build`, and no line runs `npm run stage`.
+
+The byte checks, the residue grep and the pins:
+
+```text
+$ cmp /Users/scutting/projects/poodl/.github/copilot-instructions.md template/.github/copilot-instructions.md && echo identical
+identical
+$ shasum -a 256 template/.github/copilot-instructions.md
+0081da3f90697864970810296453a7e41f5a3ea1067844d96b593131a95973b1  template/.github/copilot-instructions.md
+$ python3 -c "[step 5's runpy comparison against ADAPTERS]"
+True
+$ grep -r -n -i -E 'poodl|pnut|site-root|stage_site|stage-preview|\{%|\{#' template/.github; echo "exit $?"
+exit 1
+$ grep -c -E "node-version: '26'|version: 0\.11\.18|rust-just==1\.51\.0|npm@11\.17\.0|uv python install 3\.14" "$W"/*.yml
+template/.github/workflows/ci.yml:15
+template/.github/workflows/pages.yml:1
+template/.github/workflows/chromatic.yml:5
+$ grep -h -o -E 'uses: [^ ]+' "$W"/*.yml | sort | uniq -c
+   1 uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+   5 uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+   1 uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128
+   5 uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+   1 uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+   4 uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+```
+
+The adapter is also `cmp`-equal to H's. Counted one pin at a time over the three files,
+`node-version: '26'` appears 5 times and `version: 0.11.18`, `rust-just==1.51.0`,
+`npm@11.17.0` and `uv python install 3.14` 4 times each. The `uses:` list over P's three
+workflows is the same six lines with the same counts. `grep -c -F '${{'` gives
+`chromatic.yml` 26, `ci.yml` 6 and `pages.yml` 3, and `find template/.github -name
+'*.jinja'` prints nothing.
+
+The gate, after `git add template/.github`:
+
+```text
+$ just lint
+uv run --frozen prek run --all-files
+Ruff lint................................................................Passed
+Ruff format check........................................................Passed
+check for added large files..............................................Passed
+check for case conflicts.................................................Passed
+check that executables have shebangs.....................................Passed
+check json...............................................................Passed
+check for merge conflicts................................................Passed
+check that scripts with shebangs are executable..........................Passed
+check toml...............................................................Passed
+check yaml...............................................................Passed
+detect private key.......................................................Passed
+EditorConfig.............................................................Passed
+markdownlint.............................................................Passed
+typos....................................................................Passed
+lychee...................................................................Passed
+shellcheck...............................................................Passed
+Lint GitHub Actions workflow files.......................................Passed
+ripsecrets...............................................................Passed
+$ just test tests/test_render.py -k "verbatim or pins or poodl" -v
+[session header]
+collecting ... collected 23 items / 20 deselected / 3 selected
+
+tests/test_render.py::test_verbatim_files_are_byte_identical PASSED      [ 33%]
+tests/test_render.py::test_no_poodl_outside_provenance PASSED            [ 66%]
+tests/test_render.py::test_pins_agree PASSED                             [100%]
+[one DirtyLocalWarning]
+================= 3 passed, 20 deselected, 1 warning in 2.27s ==================
+$ uvx --from actionlint-py --with shellcheck-py actionlint -verbose "$W"/*.yml
+[Linting lines, and "Found 0 parse errors" for each file]
+verbose: Rule "pyflakes" was disabled: exec: "pyflakes": executable file not found in $PATH
+verbose: Rule "pyflakes" was disabled: exec: "pyflakes": executable file not found in $PATH
+verbose: Rule "pyflakes" was disabled: exec: "pyflakes": executable file not found in $PATH
+[a "Found total 0 errors" line for each file]
+verbose: Found 0 errors in 3 files
+$ just check
+uv lock --check
+Resolved 33 packages in 3ms
+uv run --frozen prek run --all-files
+[the 18 hook lines above, every one ending Passed]
+uv run --frozen mypy
+Success: no issues found in 6 source files
+uv run --frozen pytest "$@"
+[session header]
+collected 27 items
+
+tests/test_render.py .......................                             [ 85%]
+tests/test_validators.py ....                                            [100%]
+
+[16 DirtyLocalWarning lines]
+======================= 27 passed, 16 warnings in 11.41s =======================
+$ git status --short
+M  template/.github/workflows/chromatic.yml
+M  template/.github/workflows/ci.yml
+```
+
+`just lint`, the standalone actionlint run and `just check` each exited 0. Filtering
+the standalone run's output for `disabled` printed only the three pyflakes lines, so the
+shellcheck rule ran. The warnings are copier's `DirtyLocalWarning: Dirty template
+changes included automatically.`, raised because the edits were not yet committed.
+`git status` was taken before this file was edited.
+
+### Step 5
+
+Step 5 changed nothing. T00's placeholder at `template/.github/copilot-instructions.md`
+was already P's file byte for byte, which is H's and the `ADAPTERS` string.
+
+### Deviations, and why
+
+- **Branch.** The work is on `T03-workflows`, the Supacode worktree's branch, as T01's
+  was `T01-toolchain-configs`, not on `ticket/t03-workflows`.
+- **Two files touched, not four.** T00's `pages.yml` was already the exact §7 content,
+  and its `copilot-instructions.md` was already the adapter, so neither was rewritten.
+  The criterion that `git diff --name-only main...HEAD` lists the four files in Files
+  touched and this ticket cannot hold as written: `git diff --name-only
+  origin/main...HEAD` lists `ci.yml`, `chromatic.yml` and this file. Every content
+  criterion for the other two holds, as quoted above. Against this worktree's local
+  `main`, still at `3db0adb` (T00's merge), the same command also lists T01's seven
+  files, because that ref predates `190057d`, the T01 merge this branch starts from.
+- **Steps 2 and 3 under zsh with `noclobber`.** Both redirections first refused to
+  overwrite their placeholders (`file exists: template/.github/workflows/ci.yml`), so
+  nothing was written. They were rerun with `>|` and produced the output above.
+
+### Handed back
+
+- **T00, `.pre-commit-config.yaml`.** On this machine the gate's actionlint hook lints
+  without shellcheck, as the probe under Open points settled shows. A `run:` script
+  error that standalone actionlint with shellcheck reports passes `just lint`. One fix
+  is to give the actionlint hook a `shellcheck` it can find, for example a local hook
+  running `uvx --from actionlint-py --with shellcheck-py actionlint`. Whether the
+  template repository's CI runner has `shellcheck` on `PATH`, which decides the same
+  question for the `fast` job, was not checked.
+- **T00, `tests/test_render.py`.** No follow-up: the three tests pass over the final
+  files unchanged.
+- **T01.** No follow-up: `template/Justfile` lines 30-32 are P's `lock-check` recipe,
+  `uv lock --check` then `npm ci --ignore-scripts --dry-run --no-audit`, which is what
+  the new `ci.yml` step calls.
+
+### Open points settled
+
+- **Whether the gate's actionlint runs with shellcheck: settled, it does not here.**
+  `command -v shellcheck` prints nothing on this machine. prek built the hook's
+  actionlint into its own environment (`~/.cache/prek/hooks/golang-*/bin`, which holds
+  no `shellcheck`), and shellcheck-py lives in a separate one. In a scratch repository
+  holding only the actionlint hook at this repository's `rev`, and one workflow whose
+  step is `run: echo $UNQUOTED`:
+
+  ```text
+  $ [this repository's .venv/bin/prek] run --all-files
+  Lint GitHub Actions workflow files.......................................Passed
+  $ actionlint -verbose .github/workflows/probe.yml   # the hook's binary
+  [Using project line]
+  verbose: Rule "shellcheck" was disabled: exec: "shellcheck": executable file not found in $PATH
+  $ uvx --from actionlint-py --with shellcheck-py actionlint .github/workflows/probe.yml
+  .github/workflows/probe.yml:7:9: shellcheck reported issue in this script: SC2086:info:1:6: Double quote to prevent globbing and word splitting [shellcheck]
+    |
+  7 |       - run: echo $UNQUOTED
+    |         ^~~~
+  ```
+
+  The last command exited 1. Over the three shipped workflows the standalone run, with
+  the rule on, reports 0 errors, so nothing is hidden in them today.
+
+- **The correction to CONVENTIONS.md §7.** `wc -l` gives P's `chromatic.yml` 249
+  lines, so its report step is lines 232-249, as Context says.
+- **CONVENTIONS.md §12, `github.event.repository.name` in a workflow-level `env`: still
+  open, for T11.** The only evidence at source is that actionlint accepts the `github`
+  context in a workflow-level `env` and reports no error. That shows the expression is
+  allowed there, not that the name is populated on `push` and `workflow_dispatch`. T11
+  takes the reading this ticket's Open points describe: a green `build` job on the first
+  push run and on a manual run, with both run URLs in its hand-back notes.
 
 ## Open points
 

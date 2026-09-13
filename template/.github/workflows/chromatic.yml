@@ -219,11 +219,30 @@ jobs:
           # minted and discarded with the run, so nothing is stored here.
           NODE_AUTH_TOKEN: ${{ github.token }}
 
+      # The token is set and builds publish. The guard stays anyway: a fork has
+      # no secret, and a revoked one would otherwise turn every push to `main`
+      # red over a publish nobody asked for. The secret is read here and in the
+      # publish itself and nowhere else, and only its presence leaves this step.
+      # A job-level `if:` cannot read `secrets`, which is why the guard sits on
+      # the steps.
+      - name: Note whether a Chromatic token is configured
+        id: token
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        run: |
+          if [ -n "${CHROMATIC_PROJECT_TOKEN:-}" ]; then
+            printf 'present=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'present=false\n' >> "$GITHUB_OUTPUT"
+            printf '%s\n' '::notice::CHROMATIC_PROJECT_TOKEN is not set; skipping the publish.'
+          fi
+
       # The branch name arrives through the environment rather than through
       # `${{ }}` in the command, because an expression is substituted as text
       # before the shell parses it and a branch name may legally contain `;`,
       # `&`, `$` or a backtick.
       - name: Publish the workshop to Chromatic
+        if: steps.token.outputs.present == 'true'
         run: just chromatic "$BRANCH"
         env:
           BRANCH: ${{ needs.authorize.outputs.branch }}
@@ -236,14 +255,32 @@ jobs:
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
           STATUS: ${{ job.status }}
+          PUBLISHED: ${{ steps.token.outputs.present }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           # The same reasoning as the reaction above, at the other end. This
           # reply is how an `issue_comment` run reports at all, since it appears
           # in no checks list — but it reports on a build that has already
-          # happened, and a hundred and five published snapshots must not be
-          # coloured red by the note about them.
+          # happened, and a published build must not be coloured red by the note
+          # about it.
+          #
+          # It runs whatever the token step said. While CHROMATIC_PROJECT_TOKEN
+          # is unset — the state this workflow exists to survive — a request
+          # would otherwise collect the rocket above and then nothing at all,
+          # which reads as a build that was published and simply says little.
+          # The skip is the one outcome that has to be said out loud.
+          case "${PUBLISHED:-}" in
+            true)
+              body="Chromatic run finished \`$STATUS\`. The build and its diffs are linked from $RUN_URL"
+              ;;
+            false)
+              body="No Chromatic build was published: \`CHROMATIC_PROJECT_TOKEN\` is not set on this repository. The run finished \`$STATUS\` and is at $RUN_URL"
+              ;;
+            *)
+              body="The Chromatic run finished \`$STATUS\` before reaching the publish step. It is at $RUN_URL"
+              ;;
+          esac
           if ! gh api --silent --method POST "repos/$GH_REPO/issues/$NUMBER/comments" \
-            -f "body=Chromatic run finished \`$STATUS\`. The build and its diffs are linked from $RUN_URL"; then
+            -f "body=$body"; then
             printf '::notice::could not reply on the pull request; the run is at %s\n' "$RUN_URL"
           fi

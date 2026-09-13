@@ -55,10 +55,10 @@ jobs:
           # the credential should not carry one. It is the run's own token,
           # minted and discarded with the run, so nothing is stored here.
           NODE_AUTH_TOKEN: ${{ github.token }}
-      # No token: a dry run against a complete lockfile reads the registry
+      # No token: the dry run against a complete lockfile reads the registry
       # for nothing, which was checked by running it with no credential in
-      # npm's configuration at all.
-      - run: npm ci --ignore-scripts --dry-run --no-audit
+      # npm's configuration at all, and `uv lock --check` reads no registry.
+      - run: just lock-check
       - run: just frontend-static
       - run: just frontend-coverage
       - run: just frontend-build
