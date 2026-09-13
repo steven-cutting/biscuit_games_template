@@ -1,0 +1,43 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.py]
+indent_size = 4
+
+[Justfile]
+indent_size = 4
+
+# The specifications are written to a fixed column width with their own
+# comment-led layout; treating them as ordinary source reflows them.
+[*.allium]
+indent_size = 4
+
+# List continuations and fenced blocks legitimately indent by other amounts.
+[*.md]
+indent_size = unset
+trim_trailing_whitespace = false
+
+# Shipped pages that carry an answer follow the rules of the page they render.
+[*.md.jinja]
+indent_size = unset
+trim_trailing_whitespace = false
+
+# The seed specification module, which renders to an .allium file.
+[*.allium.jinja]
+indent_size = 4
+
+# copier.yml aligns its messages and wrapped Jinja expressions to their own
+# text, and it stays exactly as CONVENTIONS.md §3 gives it.
+[copier.yml]
+indent_size = unset
+
+[Makefile]
+indent_style = tab
+indent_size = unset

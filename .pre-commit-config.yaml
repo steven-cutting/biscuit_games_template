@@ -1,0 +1,99 @@
+exclude: >-
+  (?x)^(
+    \.git/|
+    \.venv/|
+    ai_tmp/|
+    uv\.lock$
+  )
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff lint
+        entry: uv run --frozen ruff check --force-exclude
+        language: system
+        types_or: [python, pyi]
+
+      - id: ruff-format-check
+        name: Ruff format check
+        entry: uv run --frozen ruff format --check --force-exclude
+        language: system
+        types_or: [python, pyi]
+
+  - repo: builtin
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=768]
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      # end-of-file-fixer and trailing-whitespace live in .pre-commit-fix.yaml.
+      # This config is the read-only gate, so it may report but never repair.
+
+  # The checker's own repository, pinned, for the reason P's file records.
+  - repo: https://github.com/editorconfig-checker/editorconfig-checker
+    rev: 675b1261a4d9668c357fcd67deb87aed8b881b94 # v3.11.1
+    hooks:
+      - id: editorconfig-checker
+        name: EditorConfig
+        types: [text]
+        # template/.editorconfig is the game's and says `root = true`, so this
+        # repository's [*.md.jinja] section never reaches a page under
+        # template/. The render's own gate checks those as the .md they become.
+        exclude: ^template/.*\.md\.jinja$
+
+  # Root pages, tickets/ and every shipped .md file. Shipped pages that carry an
+  # answer are .md.jinja, which this never matches; the render's gate reads those.
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: b82a6c8896e491b9cb377a99ff3412131920681b # v0.23.2
+    hooks:
+      - id: markdownlint-cli2
+        name: markdownlint
+
+  - repo: https://github.com/crate-ci/typos
+    rev: bee27e3a4fd1ea2111cf90ab89cd076c870fce14 # v1.48.0
+    hooks:
+      - id: typos
+
+  # LYCHEE_VERSION leads the arguments and matches the rev comment, for the
+  # reason P's file records: without it the hook derives its version from a
+  # `git describe` that Git's exported GIT_DIR points at this repository.
+  - repo: https://github.com/lycheeverse/lychee
+    rev: 2bba271688c1abb1503097a064e6c3bc1d1b6a9b # lychee-v0.24.2
+    hooks:
+      - id: lychee
+        args:
+          [
+            LYCHEE_VERSION=0.24.2,
+            --offline,
+            --cache,
+            --config,
+            lychee.toml,
+            --no-progress,
+            --root-dir,
+            .
+          ]
+        types: [markdown]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: 745eface02aef23e168a8afb6b5737818efbea95 # v0.11.0.1
+    hooks:
+      - id: shellcheck
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: 914e7df21a07ef503a81201c76d2b11c789d3fca # v1.7.12
+    hooks:
+      - id: actionlint
+        # This repository's own workflows, and the three shipped workflows,
+        # which carry no answer and so ship unsuffixed.
+        files: ^(\.github|template/\.github)/workflows/.*\.ya?ml$
+
+  - repo: https://github.com/sirwart/ripsecrets
+    rev: 7d94620933e79b8acaa0cd9e60e9864b07673d86 # v0.1.11
+    hooks:
+      - id: ripsecrets

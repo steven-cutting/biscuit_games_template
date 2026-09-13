@@ -1,0 +1,78 @@
+[project]
+name = "biscuit-games-template"
+version = "0.1.0"
+description = "Maintainer tooling for the Biscuit Games copier template. The template is under template/; this project only tests it."
+requires-python = ">=3.14"
+dependencies = [
+  "copier==9.18.2",
+  "pathspec==1.1.1",
+  "PyYAML==6.0.3",
+]
+
+[dependency-groups]
+dev = [
+  "mypy==2.3.1",
+  "prek==0.4.12",
+  "pytest==9.1.1",
+  "pytest-timeout==2.4.0",
+  "ruff==0.16.2",
+  "types-PyYAML==6.0.12.20260906",
+]
+
+[tool.uv]
+# No wheel is ever built. This project exists so `uv run --frozen` provides a
+# pinned copier, pytest and the hook runner; see README "Maintaining".
+package = false
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-config", "--strict-markers", "--timeout=1800"]
+testpaths = ["tests"]
+xfail_strict = true
+markers = [
+  "network: downloads the pinned allium binary into the render (BISCUIT_TEMPLATE_NETWORK=1)",
+  "full: runs `just initialize` and `just check` inside the render (BISCUIT_TEMPLATE_FULL=1)",
+]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+files = ["tests"]
+
+[tool.ruff]
+line-length = 99
+target-version = "py314"
+unsafe-fixes = false
+src = ["tests", "template/scripts"]
+
+[tool.ruff.lint]
+select = [
+  "A", "ANN", "ARG", "B", "BLE", "C4", "COM", "DTZ", "E",
+  "EM", "EXE", "F", "FA", "FLY", "FURB", "G", "I", "INP", "INT",
+  "ISC", "LOG", "N", "PERF", "PGH", "PIE", "PL", "PTH", "PYI",
+  "Q", "RET", "RSE", "RUF", "S", "SIM", "SLF", "T10", "TC",
+  "TID", "TRY", "UP", "W",
+]
+ignore = ["COM812", "E501", "ISC001"]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+# The harness asserts, shells out to git and to the rendered scripts by design.
+"tests/**" = ["PLR2004", "S101", "S404", "S603", "S607"]
+# The shipped checkers, linted at source. Same waivers Poodl grants them.
+"template/scripts/**" = [
+  "ANN", "BLE001", "EM101", "EM102", "INP001", "PLR0912", "PLR0915",
+  "PLR2004", "S404", "S603", "S607", "T201", "TRY003",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.typos.files]
+extend-exclude = ["uv.lock"]

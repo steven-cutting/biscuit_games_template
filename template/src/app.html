@@ -1,0 +1,18 @@
+<!doctype html>
+<!--
+  data-theme="dark" is `default Settings player_settings` from settings.allium,
+  stated in the markup so the prerendered page paints the default before the
+  store hydrates. +page.svelte's appearance effect then writes the player's
+  actual choice over it: `light` replaces it, `system` removes it.
+-->
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
+</html>

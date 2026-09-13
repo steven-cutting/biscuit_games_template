@@ -1,0 +1,81 @@
+name: Deploy to GitHub Pages
+
+# Publishing needs write scopes that no other workflow here has, so the deploy
+# lives in its own file rather than as a job on the end of CI.
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A project site: Pages serves the build at <owner>.github.io/<repository>/,
+# so the app is built to live under that path. The name is read from the event
+# rather than written here, which is what keeps this file the same in every
+# game and keeps `paths.base` in svelte.config.js from drifting away from the
+# address Pages actually serves.
+env:
+  BASE_PATH: /${{ github.event.repository.name }}
+
+# One deployment at a time, and never cancel one that is already running: a
+# half-published site is worse than a slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # A job block replaces the workflow's rather than adding to it, which is
+    # what keeps the two publishing scopes on `deploy` and off the job that
+    # installs. This one reads the design system package and needs neither.
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: package-lock.json
+          # @steven-cutting/biscuit-games comes from GitHub Packages, which
+          # authenticates every request including a read of a public package.
+          # This writes a user-level .npmrc under RUNNER_TEMP naming the
+          # registry for the scope and reading the token from the environment
+          # of each step that installs; the committed .npmrc names the registry
+          # and holds nothing, and the checkout the gates prove clean stays that
+          # way.
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@steven-cutting'
+      - run: npm ci --no-audit
+        env:
+          # On the step that installs, never on the job: a step with no use for
+          # the credential should not carry one. It is the run's own token,
+          # minted and discarded with the run, so nothing is stored here.
+          NODE_AUTH_TOKEN: ${{ github.token }}
+      - name: Build the static site
+        run: npm run build
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          # The build alone. A project site has no domain root to stage around
+          # it, and static/.nojekyll rides along so Pages serves _app/.
+          path: build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
