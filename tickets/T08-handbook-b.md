@@ -1,7 +1,7 @@
 ---
 id: T08
 title: Handbook B: explanation, reference and operations pages
-status: open
+status: done
 depends_on: [T00]
 parallel_with: [T01, T02, T03, T04, T05, T06, T07, T09]
 branch: ticket/t08-handbook-b
@@ -720,15 +720,108 @@ Expected: green in the template repository.
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+**What was verified and how.**
 
-- What was verified and how: quote the output of each Verification command.
-- What deviated from the ticket and why (a P line that had moved, a replacement
-  sentence that failed a gate, a link the harness refused).
-- Tier B pages cut, if any, with the reason; each stays as T00's stub.
-- What was handed back to another ticket: any manifest, map, decision or how-to change
-  this lane needed (T00 follow-up, T07, T09), stated as the exact edit.
-- Which open points were settled, and how.
+- `just test` before any edit: `27 passed, 2 skipped in 12.93s`. The two skips are
+  `tests/test_specs.py`, which needs `BISCUIT_TEMPLATE_NETWORK=1`.
+- `just test` after: `27 passed, 2 skipped, 16 warnings in 12.15s`. That is 23 passed in
+  `tests/test_render.py`, including `test_no_poodl_outside_provenance` and
+  `test_managed_pages_link_only_to_stable_pages`, and 4 in `tests/test_validators.py`;
+  neither file skipped anything. The warnings are Copier's `DirtyLocalWarning`.
+- `just lint`, exit 0: Ruff lint and format check, the builtin checks, EditorConfig,
+  markdownlint, typos, lychee, shellcheck, actionlint and ripsecrets all `Passed`.
+- `rm -rf ai_tmp/render && just render ai_tmp/render`, then
+  `python3 ai_tmp/render/scripts/validate_docs.py`:
+  `Validated 38 pages and 39 canonical topics.`, exit 0.
+- The forbidden-token grep and the seed-link grep from Verification each printed nothing
+  and exited 1. So did a grep for `{{`, `{%` and `{#` over the same three rendered
+  directories. No file in the three source directories ends `.jinja`.
+- `cd ai_tmp/render && git init -q -b main && git add -A && uv lock && just check-docs`:
+  `Resolved 3 packages`, then markdownlint, typos and lychee `Passed` and
+  `Validated 38 pages and 39 canonical topics.`, exit 0.
+- `just check`, exit 0: every prek hook `Passed`, mypy printed
+  `Success: no issues found in 7 source files`, pytest `27 passed, 2 skipped`.
+- `cmp` finds Poodl's lines 14-27 identical to the gate table in `reference/quality-gates.md`,
+  and lines 139-160 identical to its "On `main`" section. `reference/agent-contract.md`
+  is identical to Poodl's lines 1-36 in its first 36 lines and to lines 59-78 in its last
+  20, and `grep -n forty` over it prints nothing. `reference/configuration.md` has six
+  constant rows; `reference/commands.md` has no `stage` row.
+- A script built the thirteen spliced pages from `git show 0a46a485:docs/<path>`. Before
+  cutting any range, it asserted the text that opens that range, and every P line number
+  in steps 4 onwards matched. `diff` of each page against P's shows only the edits named
+  here and the deviations below. `explanation/accessibility.md` is the embedded page as
+  written.
+
+**What deviated from the ticket and why.**
+
+- `reference/configuration.md`: "P 24-48 become" includes the `### The base path`
+  heading at P 24. I kept the heading and replaced P 26-48; the subsection would
+  otherwise run on under "Build-time environment" with no heading. Nothing links to the
+  anchor in P's `docs/` or in `template/docs/`.
+- `reference/testing.md`, the lockup paragraph: "that the words collapse below about
+  26rem is the platform's, measured in the workshop upstream" is untrue here. The seed
+  story "In the header at the narrowest supported width" measures the collapse itself:
+  it asserts the words' box is at most one pixel wide at 320 pixels, in
+  `template/stories/Lockup.stories.svelte` on `main` and on T05's branch alike. The
+  sentence now reads: "That the words leave the layout below about 26rem is the
+  platform's rule and a width, which jsdom has no layout engine to take, so the story
+  framed at the narrowest supported width measures it in Chromium."
+- `operations/troubleshooting.md`: P 44 ("one sentence pointing at the canonical path,
+  under forty words") states the old word-budget rule, which contradicts
+  `reference/agent-contract.md` and the shipped validator. It is replaced by the hub's
+  `docs/operations/troubleshooting.md` lines 66-68: the fixed pointer sentence and
+  nothing else, with a link to `../reference/agent-contract.md#what-a-bridge-must-be`,
+  whose anchor the new agent contract carries.
+- `explanation/specifications.md`: the ticket gives the example's content, not its
+  words. The written text says a 40-pixel control "fails the story run on the number",
+  because the story is what measures a control; `tests/platformSpecs.test.ts` holds only
+  the figures equal. The named guarantee is the root module's
+  `EveryFigureHoldsAtTheNarrowestWidth`.
+- `explanation/quality-philosophy.md`: the replacement for P 40-48 keeps P's two
+  paragraphs, split before "The corollary".
+- A dropped range also takes the blank line after it, so no page carries a double blank
+  line: architecture P 79, layering P 52, specifications P 67, testing P 163,
+  troubleshooting P 108 and P 123. In security-model, P 39-47 is replaced as a single
+  span.
+- Kept as written, though it reads oddly: in `explanation/layering.md`, "the claims below
+  true, and each of them is load-bearing" now introduces a single claim.
+- The ticket's `branch:` is `ticket/t08-handbook-b`; the worktree is on `T08-handbook-b`,
+  and the commit is there.
+
+**Claims the pages make that this lane could not check.**
+
+- `explanation/quality-philosophy.md` says a number in a template literal goes through
+  `String()`. On `main` that is false: `template/stories/Lockup.stories.svelte` line 83
+  interpolates `NARROWEST_SUPPORTED_WIDTH` bare. T05's branch introduces
+  `FRAME_WIDTH` through `String()`, so the sentence holds once T05 merges.
+- "About fourteen branch sites" is the ticket's figure. A coverage run needs `npm ci`
+  from GitHub Packages, and none was run.
+
+**Tier B pages cut.** None; all three were rewritten.
+
+**What was handed back to another ticket.** Nothing: no manifest, map, decision or
+how-to change was needed. For T07: `operations/troubleshooting.md` renames the heading
+"Tests fail on `localStorage` or `navigator.clipboard`" to "Tests fail on
+`localStorage`", which changes its anchor. Nothing in P's `docs/` links to that anchor.
+`operations/maintenance.md` and `reference/documentation-contract.md` link to
+`how-to/update-from-template.md`, T07's page.
+
+**Open points settled.**
+
+- `test_managed_pages_link_only_to_stable_pages` admits every `docs/decisions/*.md`
+  through `fnmatchcase`, so 0009 and 0010 would pass the test. "Managed and seed pages"
+  still does not link 0009, for three reasons: the section is given exactly,
+  CONVENTIONS.md §8 limits managed pages to carried decisions, and the Verification grep
+  refuses `decisions/0009`.
+- `just check-docs` runs in a render after `git init`, `git add -A` and `uv lock`,
+  without `just initialize`, with the network up. This machine's prek cache may already
+  have held the hook environments, so a cold cache was not tested.
+- `typos` accepted every word, both at source (`just lint`) and in the render
+  (`just check-docs`).
+- The platform modules import nothing: `grep -cE '^\s*(import|use)\b'` printed 0 for
+  `appearance.allium`, `operation.allium` and `play-surfaces.allium` at H `09b4894a`.
+  `package.json` pins `1.0.0`, and CONVENTIONS.md §0 records that the files taken from H
+  are identical at `v1.0.0`. `node_modules` was not inspected.
 
 ## Open points
 
