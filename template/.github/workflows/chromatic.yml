@@ -220,7 +220,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ github.token }}
 
       # The token is set and builds publish. The guard stays anyway: a fork has
-      # no secret, and a revoked one would otherwise turn every push to `main`
+      # no secret, and an unset one would otherwise turn every push to `main`
       # red over a publish nobody asked for. The secret is read here and in the
       # publish itself and nowhere else, and only its presence leaves this step.
       # A job-level `if:` cannot read `secrets`, which is why the guard sits on
