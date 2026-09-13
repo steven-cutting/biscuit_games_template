@@ -21,6 +21,9 @@ are tags on `main`, and what each level means for a rendered game is stated in
 ### Seed
 
 - Every seed file, in the form CONVENTIONS §7 gives it or as a stub.
+- `docs/decisions/` in final form: the index and ten records, eight carried from Poodl
+  and two new, on being rendered from the template and on the project Pages site. A seed
+  change reaches no game that already exists; none does yet.
 
 ### Questionnaire
 
