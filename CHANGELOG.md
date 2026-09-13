@@ -17,6 +17,10 @@ are tags on `main`, and what each level means for a rendered game is stated in
 - `tests/ports.test.ts` covers the three ports the template ships, storage, randomness
   and the clock, so a render's `npm test` no longer imports a clipboard or timer adapter
   that does not exist.
+- The handbook's project, tutorial and how-to pages in final form: the repository map,
+  the platform page, the first-change tutorial, six how-to pages carried from Poodl, and
+  a new `docs/how-to/update-from-template.md` stating the seed list, the append
+  convention and the update procedure.
 
 ### Seed
 
@@ -24,6 +28,9 @@ are tags on `main`, and what each level means for a rendered game is stated in
 - `docs/decisions/` in final form: the index and ten records, eight carried from Poodl
   and two new, on being rendered from the template and on the project Pages site. A seed
   change reaches no game that already exists; none does yet.
+- `README.md`, `CHANGELOG.md` and the two seed project pages, purpose and scope and
+  terminology, in final form. A seed change reaches no game that already exists; none
+  does yet.
 
 ### Questionnaire
 
