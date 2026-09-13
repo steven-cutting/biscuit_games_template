@@ -1,7 +1,7 @@
 ---
 id: T06
 title: "Seed specification: the root Allium module and the platform-figures test"
-status: open
+status: done
 depends_on: [T00]
 parallel_with: [T01, T02, T03, T04, T05, T07, T08, T09]
 branch: ticket/t06-seed-specification
@@ -615,21 +615,250 @@ Expected: `Test Files  1 passed (1)` and `Tests  10 passed (10)`.
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### Outcome
 
-- What was verified and how: the exact `check-specs` and `analyse-specs` output from
-  the render, which path step 4 took (recipes, or copied scripts), whether
-  `tests/test_specs.py` existed and its result, whether step 7 ran and its result, and
-  the `just check` outcome.
-- The CONVENTIONS.md §12 claim, doubt by doubt: bare `Play` accepted or not, no
-  `contracts:` accepted or not, comment-only figure references accepted or not, each
-  with the diagnostic if there was one.
-- What deviated from the ticket and why: any edit to the module, with the diagnostic
-  that forced it and the CONVENTIONS.md §7 correction to be made on `main`.
-- What was handed back to another ticket: anything found wrong in `src/lib/config.ts`
-  or `tests/restated.ts` (T05), in the shipped scripts (T02), or in the render's
-  `Justfile` and `pyproject.toml` (T01).
-- Which open points were settled, with the command and its output.
+The seed module needed no edit: allium 3.6.1 reports it clean under both `check` and
+`analyse`, so the CONVENTIONS.md §12 claim holds as written. The test did need an edit.
+T00 had spliced it from §7's code block, which omits the header comment that §7's prose
+requires and leaves three `FIGURES` entries and the `gameModules()` chain past
+Prettier's width. `template/tests/platformSpecs.test.ts` is now byte-equal to the step
+3 text (`cmp` against `ai_tmp/t06/platformSpecs.test.ts`, extracted from this ticket).
+Its lines 43-106 equal P lines 37-100, and its version case equals P lines 181-194
+(both `diff` empty).
+
+### Step 2: the module
+
+`template/docs/specs/{{ game_slug }}.allium.jinja` differs from the step 2 text on line
+3 alone, and was left as it is:
+
+```text
+3c3
+< -- {{ game_name }} — the game
+---
+> -- {{ game_name | trim }} — the game
+```
+
+The template carries CONVENTIONS.md §7's text, which already has `| trim`; this ticket's
+step 2 text lags §7 on that line, and §7 wins (CONVENTIONS.md preamble). Otherwise the
+module is as step 2 requires: LF, one final newline (`tail -c2` is `7d0a`), no tab and no
+trailing whitespace. Step 2 and the first acceptance criterion want the `| trim` form
+when this ticket is next corrected on `main`.
+
+### Step 3: Prettier
+
+Before the copy, the step 3 text was checked against the render's Prettier version and
+settings (`printWidth` 100, single quotes, no trailing commas):
+
+```text
+$ npx --yes prettier@3.9.6 --config ai_tmp/t06/.prettierrc.json --check ai_tmp/t06/platformSpecs.test.ts
+Checking formatting...
+All matched files use Prettier code style!
+```
+
+### Step 4: the proof in a render
+
+T01 and T02 have merged, so the recipes path was taken, not copied scripts.
+
+```text
+$ rm -rf ai_tmp/render && just render
+Rendered into ai_tmp/render
+$ cd ai_tmp/render && git init -q -b main && uv lock
+Using CPython 3.14.3
+Resolved 3 packages in 64ms
+$ just install-allium
+uv run --frozen python scripts/install_allium.py
+downloading https://github.com/juxt/allium-tools/releases/download/v3.6.1/allium-aarch64-apple-darwin.tar.gz
+installed allium 3.6.1 at <render>/.tools/bin/allium
+$ just check-specs
+uv run --frozen python scripts/run_allium.py check
+{
+  "command": "check",
+  "diagnostics": [],
+  "findings": [],
+  "spec_file": "docs/specs/tic_tac_toe_beans.allium"
+}
+allium check: 1 specifications, no diagnostics and no findings.
+$ just analyse-specs
+uv run --frozen python scripts/run_allium.py analyse
+{
+  "command": "analyse",
+  "diagnostics": [],
+  "findings": [],
+  "spec_file": "docs/specs/tic_tac_toe_beans.allium"
+}
+allium analyse: 1 specifications, no diagnostics and no findings.
+```
+
+All three recipes exited 0. `git status --porcelain` listed 39 entries, every one
+untracked (`??`): the rendered tree plus `uv.lock`. None names `.tools/`, which appears
+only under `git status --porcelain --ignored` as `!! .tools/`.
+
+The rendered module has no `{{`, `{%` or `{#`, no "poodl" in any case (nor does the
+rendered test), no tab and no trailing whitespace; line 3 reads
+`-- Tic Tac Toe Beans — the game`. Its six figures agree with `src/lib/config.ts` and
+with H at `09b4894a`:
+
+| Figure | Module line | `config.ts` | H |
+| --- | --- | --- | --- |
+| `minimum_text_contrast` | 49: `Decimal = 4.5` | `4.5` | `appearance.allium:97` `4.5` |
+| `minimum_boundary_contrast` | 50: `Decimal = 3.0` | `3.0` | `appearance.allium:98` `3.0` |
+| `minimum_touch_target` | 55: `Integer = 44` | `44` | `operation.allium:96` `44` |
+| `narrowest_supported_width` | 56: `Integer = 320` | `320` | `operation.allium:101` `320` |
+| `minimum_state_separation` | 61: `Decimal = 3.0` | `3.0` | `play-surfaces.allium:126` `3.0` |
+| `minimum_mark_separation` | 62: `Decimal = 2.0` | `2.0` | `play-surfaces.allium:141` `2.0` |
+
+Read the way the test reads it, with the test's own lines 43-106 run under Node 26 over
+the rendered module (`ai_tmp/t06/parse.ts`):
+
+```text
+figures() [["minimum_text_contrast",4.5],["minimum_boundary_contrast",3],["minimum_touch_target",44],["narrowest_supported_width",320],["minimum_state_separation",3],["minimum_mark_separation",2]]
+clauses() [["Play.EveryFigureHoldsAtTheNarrowestWidth",468]]
+```
+
+### Step 6: `tests/test_specs.py`
+
+The file exists (T02). It holds two tests, not one: T02 added the empty `docs/specs/`
+negative control, so the expected count is `2 passed`.
+
+```text
+$ BISCUIT_TEMPLATE_NETWORK=1 just test tests/test_specs.py
+tests/test_specs.py ..                                                   [100%]
+========================= 2 passed, 1 warning in 3.97s =========================
+```
+
+The warning is copier's `DirtyLocalWarning` for the uncommitted test file.
+
+### Step 7: the figure cases against the installed package
+
+A `read:packages` token is in `~/.npmrc`, so step 7 ran. `just initialize` did not
+finish, for a reason outside this ticket (under Handed back). It got through `uv lock`,
+`uv sync`, `npm install`, `npm ci`, the Chromium download, the allium install and ruff.
+It then stopped at `npm run lint:fix`, before Prettier and before `install-hooks`:
+
+```text
+> tic_tac_toe_beans@0.1.0 lint:fix
+> svelte-kit sync && eslint . --fix && prettier --write .
+
+<render>/stories/Lockup.stories.svelte
+  83:31  error  Invalid type "320" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+✖ 1 problem (1 error, 0 warnings)
+
+error: recipe `initialize` failed on line 15 with exit code 1
+```
+
+`node_modules` was complete, so the figure cases ran all the same:
+
+```text
+$ npx vitest run --config vite.config.ts tests/platformSpecs.test.ts --reporter=verbose
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > reads appearance.allium from the installed package
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > reads operation.allium from the installed package
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > reads play-surfaces.allium from the installed package
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > agrees with 'appearance.allium' on config.'minimum_text_contrast'
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > agrees with 'appearance.allium' on config.'minimum_boundary_contrast'
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > agrees with 'operation.allium' on config.'minimum_touch_target'
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > agrees with 'operation.allium' on config.'narrowest_supported_width'
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > agrees with 'play-surfaces.allium' on config.'minimum_state_separation'
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > agrees with 'play-surfaces.allium' on config.'minimum_mark_separation'
+ ✓ |unit| tests/platformSpecs.test.ts > the platform specifications this game restates > reads the version package.json pins
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+```
+
+No `states ... exactly as` case was registered: `it.each` over the empty `RESTATED`
+table is a no-op under Vitest 4.1.10, as CONVENTIONS.md §7 says. The render pins
+`@steven-cutting/biscuit-games` at `1.0.0`, and `1.0.0` is installed.
+
+### Step 8: `just check`
+
+Green at the repository root: `uv lock --check` resolved; every prek hook `Passed`
+(ruff, the builtin checks, EditorConfig, markdownlint, typos, lychee, shellcheck,
+actionlint, ripsecrets); mypy `Success: no issues found in 7 source files`; and the fast
+suite:
+
+```text
+tests/test_render.py .......................                             [ 79%]
+tests/test_specs.py ss                                                   [ 86%]
+tests/test_validators.py ....                                            [100%]
+================= 27 passed, 2 skipped, 16 warnings in 11.22s ==================
+```
+
+The two skips are `test_specs.py` without `BISCUIT_TEMPLATE_NETWORK=1`; step 6 ran them.
+
+### The CONVENTIONS.md §12 claim, doubt by doubt
+
+Answered by the one step 4 run. The module as written is all three doubts at once, and
+both commands returned `"diagnostics": []` and `"findings": []`.
+
+- (a) Bare `Play` as a surface identifier: accepted, no diagnostic. The rename to
+  `PlaySurface` was not needed, and the `clauses()` key is
+  `Play.EveryFigureHoldsAtTheNarrowestWidth`.
+- (b) A surface with no `contracts:` block: accepted, no diagnostic. No `LaidOut`
+  contract was added.
+- (c) Figures referenced only in `--` comment bodies: accepted, no
+  `allium.field.unused`. Five figures appear only in the guarantee's comment body;
+  `narrowest_supported_width` alone is read by code, in the `let`. No `let` lines were
+  added.
+
+The claim can be marked verified on `main`: CONVENTIONS.md §12's first bullet, and the
+"parsing unverified" heading on the module in §7. That document changes through a pull
+request on `main`, not here.
+
+### Deviations
+
+- The module was not replaced with the step 2 text. The template already equals
+  CONVENTIONS.md §7, whose line 3 has `| trim` (Step 2, above).
+- Step 6 expects `1 passed`; the file holds two tests and gives `2 passed`.
+- The work is on branch `T06-seed-specification`, the name the Supacode worktree was
+  created with, not `ticket/t06-seed-specification` as the frontmatter says (T02 did the
+  same). Rename it before pushing if it must match the field.
+- `CHANGELOG.md` was not edited. It is not in Files touched, the test is managed rather
+  than seed, and the seed module did not change.
+
+### Handed back
+
+- T05: `template/stories/Lockup.stories.svelte` line 83 writes
+  `` `${NARROWEST_SUPPORTED_WIDTH}px` ``. Under the render's `strictTypeChecked` ESLint
+  that is `@typescript-eslint/restrict-template-expressions`, which `eslint --fix`
+  cannot fix, so `scripts/initialize.sh` aborts at `npm run lint:fix` in every fresh
+  render. This is the CONVENTIONS.md §13 risk of `initialize.sh` aborting on an unfixable
+  ESLint error. CONVENTIONS.md §7 already gives the fix: interpolate
+  `String(NARROWEST_SUPPORTED_WIDTH)`, because the hub's ESLint config has no
+  `allowNumber` (§7 cites `H/stories/HeaderBar.stories.svelte:11`). The local
+  `T05-source-skeleton` branch has no commit past `main` yet and still has line 83
+  unchanged.
+- On `main`: correct this ticket's step 2 text and first acceptance criterion to
+  `{{ game_name | trim }}`, and mark the §12 claim verified (both above). Also replace
+  CONVENTIONS.md §7's `tests/platformSpecs.test.ts` code block with the step 3 text:
+  that block has no header comment and is not wrapped to Prettier, so a file spliced from
+  it repeats T00's error.
+- T01, T02: nothing. The render's recipes and both scripts ran as designed, and
+  `run_allium.py` and `install_allium.py` equal P's and H's respectively (`diff` empty).
+- T05's `src/lib/config.ts` and `tests/restated.ts`: nothing. The six constants equal
+  §7's, and `RESTATED` is `readonly Restatement[] = []`.
+
+### Open points settled
+
+- CONVENTIONS.md §12, first claim: settled, it holds (step 4 above).
+- ESLint on the test lines that are not P's: settled, clean. In the render after
+  `npm ci`, `npx eslint tests/platformSpecs.test.ts` exited 0 under
+  `tseslint.configs.strictTypeChecked` with `projectService`, and `eslint.config.js`
+  does not ignore `tests/`. The whole-tree `eslint . --fix` in `initialize.sh` reported
+  one problem, in the story above, and none in this file. Prettier with the render's own
+  `.prettierrc.json` also passed: `npx prettier --check tests/platformSpecs.test.ts`.
+- `uv lock` in a render before T01 merged: moot, T01 has merged. `uv lock` resolved 3
+  packages and the recipes ran.
+- A `game_name` with trailing whitespace: settled, it cannot reach the module. The
+  questionnaire refuses it, with or without `description` supplied:
+
+  ```text
+  $ uv run --frozen copier copy --defaults --vcs-ref=HEAD --quiet --data 'game_name=Tic Tac Toe Beans ' . ai_tmp/ws
+  ValueError: Validation error for question 'game_name': Remove the spaces around the name. The generated Markdown keeps them, where
+  they break the README heading and, four deep, turn a line of AGENTS.md into code.
+  ```
+
+  The module's `{{ game_name | trim }}` (§7) is a second guard behind that validator.
+- A `read:packages` token on the executing machine: present; step 7 ran (above).
 
 ## Open points
 

@@ -13,6 +13,33 @@ import {
   NARROWEST_SUPPORTED_WIDTH
 } from '../src/lib/config';
 
+/*
+ * The clauses this game restates from the platform's specifications, held
+ * equal to the text the platform ships, and the figures the platform states,
+ * held equal to `src/lib/config.ts` and to every module under `docs/specs/`
+ * that states one.
+ *
+ * Nothing else anywhere compares the two. Allium has no cross-repository
+ * import, and putting a module inside `node_modules` does not give it one:
+ * `just check-specs` reads this game's modules alone and the hub's gate reads
+ * its three, and both stay green while the clauses drift apart. Only a person
+ * diffing the texts side by side would notice, which is to say nobody would.
+ *
+ * It is meant to be over-sensitive. A reworded comma fails it, and that failure
+ * is the one moment somebody is required to say whether the platform's meaning
+ * moved. When it did, the clause is amended in the hub and taken here as a
+ * version — never reworded here, which is what the failure is for.
+ *
+ * It compares clauses by the surface or contract that states them, not by name.
+ * `FullyKeyboardOperable` is stated once by the platform, for its own
+ * `Operation` surface, and a game may state it under several surfaces of its
+ * own, each with the wording that surface needs. A register keyed by bare name
+ * would compare one of those to the platform's and demand the rest be reworded.
+ *
+ * Which clauses are restated is the game's to say, in `tests/restated.ts`. A
+ * fresh game restates none, and this file still holds the figures.
+ */
+
 /** How a clause body reads once the shape of the comment is taken off it. */
 function flatten(body: readonly string[]): string {
   return body
@@ -82,7 +109,9 @@ const SPECS = resolve(process.cwd(), 'docs', 'specs');
 
 /** Every module this game keeps, which is what `just check-specs` reads. */
 function gameModules(): string[] {
-  return readdirSync(SPECS).filter((name) => name.endsWith('.allium')).sort();
+  return readdirSync(SPECS)
+    .filter((name) => name.endsWith('.allium'))
+    .sort();
 }
 
 function gameModule(name: string): string {
@@ -92,11 +121,27 @@ function gameModule(name: string): string {
 /** Which platform module states each figure, and what `config.ts` mirrors it as. */
 const FIGURES = [
   { figure: 'minimum_text_contrast', module: 'appearance.allium', mirrored: MINIMUM_TEXT_CONTRAST },
-  { figure: 'minimum_boundary_contrast', module: 'appearance.allium', mirrored: MINIMUM_BOUNDARY_CONTRAST },
+  {
+    figure: 'minimum_boundary_contrast',
+    module: 'appearance.allium',
+    mirrored: MINIMUM_BOUNDARY_CONTRAST
+  },
   { figure: 'minimum_touch_target', module: 'operation.allium', mirrored: MINIMUM_TOUCH_TARGET },
-  { figure: 'narrowest_supported_width', module: 'operation.allium', mirrored: NARROWEST_SUPPORTED_WIDTH },
-  { figure: 'minimum_state_separation', module: 'play-surfaces.allium', mirrored: MINIMUM_STATE_SEPARATION },
-  { figure: 'minimum_mark_separation', module: 'play-surfaces.allium', mirrored: MINIMUM_MARK_SEPARATION }
+  {
+    figure: 'narrowest_supported_width',
+    module: 'operation.allium',
+    mirrored: NARROWEST_SUPPORTED_WIDTH
+  },
+  {
+    figure: 'minimum_state_separation',
+    module: 'play-surfaces.allium',
+    mirrored: MINIMUM_STATE_SEPARATION
+  },
+  {
+    figure: 'minimum_mark_separation',
+    module: 'play-surfaces.allium',
+    mirrored: MINIMUM_MARK_SEPARATION
+  }
 ] as const;
 
 const MODULES = ['appearance.allium', 'operation.allium', 'play-surfaces.allium'] as const;
