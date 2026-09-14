@@ -735,11 +735,11 @@ Expected: nothing untracked or modified after the commit; no tag (T11 makes the 
   `product`. That is a Non-goal here and is handed back. So two acceptance criteria are
   not met by this ticket: "`test_render_passes_its_own_gate` passed" and "the whole
   `just test-full` run is green". Every other criterion is met.
-- This ticket does not make `full` a required check and changed no repository setting.
-  Until the hub package grants `steven-cutting/biscuit_games_template` read access (C03),
-  the `full` job is expected to fail at the render's `npm ci` with a 401 or 403 from
-  `npm.pkg.github.com`. After the grant it will still fail at `frontend-static` until the
-  `Wordmark` hand-back is resolved. `fast` stays the one required check.
+- This ticket does not make `full` a required check and changed no repository setting;
+  `fast` stays the one required check. On this ticket's pull request, `fast` passed.
+  `full` did not fail at `npm ci`, as this ticket expected: the render installed the hub
+  package with the run's own token. It failed at the render's `frontend-static`, on the
+  same `Wordmark` error as the local run (open point 5).
 
 ### What was verified, and how
 
@@ -1004,9 +1004,42 @@ SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
    ======================== 2 passed, 1 skipped in 24.13s =========================
    ```
 
-5. **`full` in CI: carried to C03.** Nothing was pushed, because pushing and opening a
-   pull request were not authorised, so the job has not run. Expected: `fast` green, and
-   `full` failing inside `just test-full` at the render's `npm ci` with a 401 or 403.
+5. **`full` in CI: the expected `npm ci` failure did not happen.** The maintainer
+   authorised the push and the pull request after the notes above were written. The
+   first run is `34808280490`, on commit `d1ab7de`:
+
+   ```text
+   fast  pass  1m35s  [18 hooks Passed; Success: no issues found in 10 source files;
+                       46 passed, 2 skipped in 12.40s]
+   full  fail  3m4s   step "Run just test-full"
+   ```
+
+   Inside `full`, with `NODE_AUTH_TOKEN` set to the run's `github.token` on that step:
+   - The render's `npm install --package-lock-only` printed `up to date in 19s`, and
+     `npm ci` printed `added 375 packages in 8s`. There was no 401 or 403 from
+     `npm.pkg.github.com`.
+   - Chromium and allium downloaded, and `just initialize` printed
+     `Ready. Next: just check.`
+   - `just storybook-browsers-deps` ran `playwright install-deps chromium` through the
+     runner's passwordless sudo.
+   - `lock-check` passed, and so did all 23 `lint` hooks.
+   - `frontend-static` failed:
+
+   ```text
+   [render]/src/lib/components/Lockup.svelte:20:11
+   Error: Type 'string' is not assignable to type 'never'. (ts)
+   <Wordmark product={GAME_NAME} />
+   svelte-check found 1 error and 0 warnings in 1 file
+   error: recipe `frontend-static` failed on line 93 with exit code 1
+   [...]
+   FAILED tests/test_full.py::test_render_passes_its_own_gate - AssertionError: assert 1 == 0
+   ============= 1 failed, 46 passed, 1 skipped in 163.53s (0:02:43) ==============
+   ```
+
+   For C03: `github.token` can already read the hub package from this repository's
+   workflows. C03 should confirm whether that is because the grant is already applied or
+   because none is needed. Either way, the `Wordmark` hand-back alone is what keeps `full`
+   red, and C03's order for making `full` required should read it that way.
 6. **The render gate's elapsed time: carried to T11 and C03.** On a warm machine,
    `test_render_passes_its_own_gate` took 26.60 s and 31.27 s. That covers `initialize`
    and the first three recipes only, because the gate stops at `frontend-static`. The
