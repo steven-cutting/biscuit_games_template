@@ -1,7 +1,7 @@
 ---
 id: T11
 title: Integration: first green render, tag v0.1.0, render tic_tac_toe_beans
-status: open
+status: done
 depends_on: [T10, T13]
 parallel_with: []
 branch: ticket/t11-integration
@@ -375,22 +375,432 @@ README) plus two (the lockfiles); `1`.
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### Outcome
 
-- What was verified and how: the `origin/main` SHA the green scratch render came from;
-  the `just test-full` or hand-render output tail; the tag commands and their output;
-  the `just test` result after the tag; the `_message_after_copy` text; the
-  `.copier-answers.yml` lines; the `just initialize` and `just check` tails in the
-  clone; the non-`??` `git status` lines.
-- The answers used, and the maintainer's confirmation of the description.
-- Whether the render used `gh:` or a local path, and whether the `_src_path` hand edit
-  was made.
-- What deviated from the ticket and why.
-- What was handed back: each rendered path a scratch render proved wrong, its owning
-  lane, the failing recipe and the fix that landed on `main` (with its pull request).
-- Whether a commit or push in `tic_tac_toe_beans` was authorised and made.
-- What the first push needs (C03 items) and the private-repository Pages question.
-- Which open points were settled, with the command output.
+- `just test-full tests/test_full.py` passed on `origin/main` at
+  `6612b7e470b5b9e41d1086cc58d540404c476fbf`, which merged pull request 12, and
+  `test_render_passes_its_own_gate` passed with it.
+- Annotated tag `v0.1.0` points at that commit and is pushed; the tag object is
+  `f3636e8`, and `git describe --tags origin/main` prints `v0.1.0`.
+  - The maintainer authorised creating and pushing it on two conditions: the full test
+    had to be green, and `main` must not have moved. Both held.
+- `just test` after the tag: 45 passed, 3 skipped. The update case from the latest tag
+  ran from `v0.1.0` and passed, next to the `HEAD~2` case.
+- `/Users/scutting/projects/tic_tac_toe_beans` holds a render from `v0.1.0`.
+  - It was rendered through `gh:`, so `_src_path` needed no hand edit.
+  - `just initialize` and `just check` passed there.
+- The answers:
+  - `game_name`: `Tic Tac Toe Beans`
+  - `game_slug`: `tic_tac_toe_beans`
+  - `description`: `A three-in-a-row game played with beans.`, the maintainer's choice
+  - `repository`: `steven-cutting/tic_tac_toe_beans`
+- **No commit or push in the clone.** The maintainer chose to leave the render
+  uncommitted, so nothing there is staged and `git log` still shows one commit.
+- **A committed copy passed as well.** The same bytes, committed in a scratch
+  repository, passed `just initialize` and `just check` with every hook run over the
+  whole tree. Deviations explains why that copy was needed.
+- **No template change.** This branch carries only this ticket file: nothing under
+  `template/`, `copier.yml` or `tests/` changed, and no repository setting changed on
+  either repository.
+
+### What was verified, and how
+
+Output is quoted. Elisions are in square brackets, and so is the `=` padding of pytest's
+summary lines.
+
+Step 1, in this worktree:
+
+```text
+$ git log --oneline -1 origin/main
+6612b7e Merge pull request #12 from steven-cutting/T10-harness-completion
+$ just sync && just check
+[18 hook lines, every one ending Passed; mypy: Success: no issues found in 10 source files]
+SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
+[...] 44 passed, 4 skipped in 46.33s [...]
+$ grep -c '^//npm.pkg.github.com/:_authToken=' ~/.npmrc
+1
+$ uvx copier --version
+copier 9.18.2
+$ git diff --stat 32ca849 6612b7e -- template copier.yml tests
+[nothing]
+```
+
+`32ca849` is the commit on which T13's `just test-full` was green. The empty diff means
+`main` renders the same tree.
+
+Step 2:
+
+```text
+$ just test-full tests/test_full.py -v -s --durations=5
+[...]
+collecting ... collected 1 item
+[just initialize]
+prek installed at `.git/hooks/pre-commit`
+
+Ready. Next: just check.
+Nothing has been staged, committed, tagged, or pushed.
+uv run --frozen python scripts/run_project_check.py run
+==> just lock-check
+==> just lint
+==> just frontend-static
+[...] COMPLETED 816 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+==> just frontend-coverage
+ Test Files  4 passed (4)
+      Tests  30 passed (30)
+Statements   : 100% ( 54/54 )
+Branches     : 100% ( 15/15 )
+Functions    : 100% ( 23/23 )
+Lines        : 100% ( 52/52 )
+==> just frontend-build
+==> just storybook-build
+==> just storybook-test
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+==> just check-docs
+uv run --frozen prek run --all-files markdownlint-cli2 typos lychee
+markdownlint.............................................................Passed
+typos....................................................................Passed
+lychee...................................................................Passed
+uv run --frozen python scripts/validate_docs.py
+Validated 38 pages and 39 canonical topics.
+==> just check-agents
+Validated AGENTS.md, 2 adapters, and 8 skills.
+==> just check-specs
+allium check: 1 specifications, no diagnostics and no findings.
+==> just analyse-specs
+allium analyse: 1 specifications, no diagnostics and no findings.
+==> just check-clean
+The worktree matches the check baseline.
+
+All checks passed and the worktree is unchanged.
+PASSED
+[...]
+42.48s call     tests/test_full.py::test_render_passes_its_own_gate
+[...] 1 passed in 44.86s [...]
+```
+
+Step 3:
+
+```text
+$ git fetch origin main && git rev-parse origin/main
+6612b7e470b5b9e41d1086cc58d540404c476fbf
+$ git tag -a v0.1.0 -m 'biscuit_games_template v0.1.0' origin/main
+$ git describe --tags origin/main
+v0.1.0
+$ git push origin v0.1.0
+To github.com:steven-cutting/biscuit_games_template.git
+ * [new tag]         v0.1.0 -> v0.1.0
+$ git ls-remote --tags origin v0.1.0
+f3636e873cdf84c6606f8315b487d521be490ce0 refs/tags/v0.1.0
+$ git cat-file -t v0.1.0
+tag
+$ just test -v
+[...]
+tests/test_update.py::test_pristine_update_equals_fresh_render[HEAD~2] PASSED [ 87%]
+tests/test_update.py::test_pristine_update_equals_fresh_render[latest-tag] PASSED [ 89%]
+tests/test_update.py::test_update_keeps_game_work PASSED                 [ 91%]
+[...]
+SKIPPED [1] tests/test_full.py:30: set BISCUIT_TEMPLATE_FULL=1
+SKIPPED [1] tests/test_specs.py:26: set BISCUIT_TEMPLATE_NETWORK=1
+SKIPPED [1] tests/test_specs.py:34: set BISCUIT_TEMPLATE_NETWORK=1
+[...] 45 passed, 3 skipped in 55.78s [...]
+```
+
+`ls-remote` separates the SHA from the ref name with a tab; it is quoted here with a
+space.
+
+Step 4, in `/Users/scutting/projects/tic_tac_toe_beans`:
+
+```text
+$ git status --porcelain --branch
+## main...origin/main
+$ git log --oneline
+4f84e9d first commit
+$ git ls-files
+README.md
+$ rm README.md
+$ git status --porcelain
+ D README.md
+```
+
+Step 5:
+
+```text
+$ uvx copier copy --vcs-ref v0.1.0 --defaults \
+    -d 'game_name=Tic Tac Toe Beans' \
+    -d 'description=A three-in-a-row game played with beans.' \
+    gh:steven-cutting/biscuit_games_template .
+Copying from template version 0.1.0
+    create  lychee.toml
+[177 create lines in all, and no identical, skip, overwrite or conflict line]
+Tic Tac Toe Beans is rendered. Nothing ran, no lockfile exists and Git is
+untouched. In order:
+
+  1. Put a GitHub token carrying read:packages in ~/.npmrc as
+       //npm.pkg.github.com/:_authToken=<your token>
+     @steven-cutting/biscuit-games is read from GitHub Packages, which refuses an
+     anonymous read.
+  2. git init -b main                   (skip inside an existing clone)
+  3. just initialize                    (lockfiles, npm ci, Chromium, allium, hooks)
+  4. just check
+  5. Commit everything, .copier-answers.yml and both lockfiles included:
+     copier update reads the answers file.
+
+Before the first push: grant steven-cutting/tic_tac_toe_beans read access on the
+@steven-cutting/biscuit-games package (a setting on the package, not on either
+repository) so CI's own token can install it, and set the Pages source to
+GitHub Actions so pages.yml can publish to https://steven-cutting.github.io/tic_tac_toe_beans/.
+```
+
+`--trust` was not passed, and copier printed no warning.
+
+Step 6:
+
+```text
+$ cat .copier-answers.yml
+# Managed by Copier. Do not edit by hand; run `copier update` instead.
+_commit: v0.1.0
+_src_path: gh:steven-cutting/biscuit_games_template
+description: A three-in-a-row game played with beans.
+game_name: Tic Tac Toe Beans
+game_slug: tic_tac_toe_beans
+repository: steven-cutting/tic_tac_toe_beans
+$ grep -n 'v0.1.0' AGENTS.md docs/how-to/update-from-template.md
+docs/how-to/update-from-template.md:13:`v0.1.0`. The answers the
+AGENTS.md:149:(<https://github.com/steven-cutting/biscuit_games_template>) at `v0.1.0`.
+$ find . -name '*.jinja' -not -path './node_modules/*'
+[nothing]
+$ ls docs/specs
+tic_tac_toe_beans.allium
+$ grep -n 'GAME_' src/lib/brand.ts
+[lines 4 to 7: the module's doc comment]
+14:export const GAME_NAME = 'tic tac toe beans';
+15:export const GAME_TITLE = 'Tic Tac Toe Beans';
+16:export const GAME_DESCRIPTION = 'A three-in-a-row game played with beans.';
+$ git status --porcelain | grep -v '^?? '
+ M README.md
+```
+
+`AGENTS.md` line 148 opens the provenance sentence: "Rendered by Copier from the
+`biscuit_games_template` template".
+
+The render was also compared with a local render of the tag. It used the same two
+answers, from this worktree into `ai_tmp/tag-render`:
+
+```text
+$ diff -rq -x .git -x .copier-answers.yml /Users/scutting/projects/tic_tac_toe_beans ai_tmp/tag-render
+[nothing; exit 0]
+$ diff /Users/scutting/projects/tic_tac_toe_beans/.copier-answers.yml ai_tmp/tag-render/.copier-answers.yml
+3c3
+< _src_path: gh:steven-cutting/biscuit_games_template
+---
+> _src_path: /Users/scutting/.supacode/repos/biscuit_games_template/T11-integration
+```
+
+So the `gh:` render is byte for byte the local render of `v0.1.0`, 126 files including
+the answers file. Its answers are the `DEFAULT_ANSWERS` that the `full` test renders
+with.
+
+Step 7, in the clone:
+
+```text
+$ just initialize
+[...]
+prek installed at `.git/hooks/pre-commit`
+
+Ready. Next: just check.
+Nothing has been staged, committed, tagged, or pushed.
+$ git status --porcelain | grep -v '^?? '
+ M README.md
+$ git status --porcelain --ignored | grep '^!! '
+!! .ruff_cache/
+!! .svelte-kit/
+!! .tools/
+!! .venv/
+!! node_modules/
+$ diff -rq -x .git -x .copier-answers.yml -x node_modules -x .venv -x .svelte-kit -x .tools -x package-lock.json -x uv.lock . [this worktree]/ai_tmp/tag-render
+Only in .: .ruff_cache
+$ just check
+==> just lock-check
+==> just lint
+Ruff lint............................................(no files to check)Skipped
+[23 hook lines: 11 Passed and 12 "(no files to check)" Skipped, typos among the Passed]
+==> just frontend-static
+[...] COMPLETED 816 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+==> just frontend-coverage
+      Tests  30 passed (30)
+[...]
+==> just storybook-test
+      Tests  3 passed (3)
+==> just check-docs
+markdownlint.............................................................Passed
+typos....................................................................Passed
+lychee...................................................................Passed
+Validated 38 pages and 39 canonical topics.
+==> just check-agents
+Validated AGENTS.md, 2 adapters, and 8 skills.
+==> just check-specs
+allium check: 1 specifications, no diagnostics and no findings.
+==> just analyse-specs
+allium analyse: 1 specifications, no diagnostics and no findings.
+==> just check-clean
+The worktree matches the check baseline.
+
+All checks passed and the worktree is unchanged.
+```
+
+The `diff` above shows `initialize` changed no rendered file: its only addition beside
+the lockfiles and the ignored trees is `.ruff_cache`. Its untracked set gained exactly
+`package-lock.json` and `uv.lock`.
+
+The committed copy took the local render in `ai_tmp/tag-render` and set its `_src_path`
+to the `gh:` value. It then ran `git init -q -b main` and committed everything with a
+throwaway identity and `--no-verify`, in `ai_tmp/consumer-committed`:
+
+```text
+$ cmp .copier-answers.yml /Users/scutting/projects/tic_tac_toe_beans/.copier-answers.yml
+[identical]
+$ git ls-files | wc -l
+     126
+$ just initialize
+[...]
+Ready. Next: just check.
+$ git status --porcelain
+?? package-lock.json
+?? uv.lock
+$ just check
+==> just lock-check
+==> just lint
+Ruff lint................................................................Passed
+[all 23 hook lines Passed, none Skipped]
+[...]
+==> just check-docs
+markdownlint.............................................................Passed
+typos....................................................................Passed
+lychee...................................................................Passed
+Validated 38 pages and 39 canonical topics.
+[...]
+==> just check-clean
+The worktree matches the check baseline.
+
+All checks passed and the worktree is unchanged.
+$ git status --porcelain
+?? package-lock.json
+?? uv.lock
+```
+
+Step 8, the clone's final state:
+
+```text
+$ git status --porcelain | grep -v '^?? '
+ M README.md
+$ git status --porcelain | grep -c '^?? '
+39
+$ git status --porcelain --untracked-files=all | grep -c '^?? '
+127
+$ git diff --cached --name-only
+[nothing]
+$ git log --oneline | wc -l
+       1
+$ git status --porcelain --ignored | grep '^!! '
+!! .lycheecache
+!! .ruff_cache/
+!! .svelte-kit/
+!! .tools/
+!! .venv/
+!! build/
+!! coverage/
+!! node_modules/
+!! scripts/__pycache__/
+!! storybook-static/
+```
+
+### Deviations, and why
+
+- **Branch.** The branch is `T11-integration`, which Supacode created, not
+  `ticket/t11-integration`. T10 and T13 ran on branches of the same shape.
+- **Description.** The maintainer chose `A three-in-a-row game played with beans.` over
+  the ticket's proposal. It is the sentence in `tests/conftest.py` `DEFAULT_ANSWERS` and
+  in `just render`, so the consumer's answers are exactly the ones the `full` test
+  renders.
+- **An extra committed run.** `prek run --all-files` lists files through Git, and in the
+  uncommitted clone the only tracked file is `README.md`.
+  - The clone's `lint` skipped twelve hooks with "(no files to check)", and its
+    `check-docs` ran markdownlint, typos and lychee over `README.md` alone.
+  - The recipes that walk the filesystem did cover the whole tree: `frontend-static`
+    read 816 files, and both validators and allium ran.
+  - To give step 7 and the typos open point their intended reach, the same bytes were
+    committed in `ai_tmp/consumer-committed`. There every hook ran over all 126 files
+    and both commands passed. Nothing in the clone was staged for this.
+- **Hooks in the clone.** `just initialize` installed prek's `pre-commit` hook into the
+  clone's `.git/hooks`, as step 7 expects of a primary checkout.
+- **Ignored set.** Three ignored paths appeared beyond those step 7 names:
+  `.ruff_cache/` after `initialize`, and `.lycheecache` and `scripts/__pycache__/` after
+  `check`. Git ignores all three, and none shows in `git status --porcelain`.
+- **Untracked count.** Plain `git status --porcelain` folds each untracked directory into
+  one line, so the Verification section's count prints `39`. With
+  `--untracked-files=all` it prints `127`: the 126 rendered paths, minus `README.md`,
+  plus the two lockfiles. That is the figure the Verification section describes.
+- **`test-full` time.** The full test took 44.86 s, because T13's runs had already
+  downloaded Chromium, allium and the hook repositories on this machine.
+
+### Handed back
+
+- **No template fixes.** No scratch render failed, so no rendered path was proved wrong
+  and no fix is owed to a lane.
+- **T12 and C07.** T12 can write the `CHANGELOG.md` entry for `v0.1.0`, and C07 has the
+  tag it needs.
+- **The clone is left uncommitted.** To commit it, make one commit of everything on
+  `main`, `.copier-answers.yml` and both lockfiles included, as `_message_after_copy`
+  says. A push needs its own authorisation and, first, the C03 items below.
+
+### What the consumer's first push needs (C03)
+
+The maintainer applies these to `steven-cutting/tic_tac_toe_beans` before its first
+push:
+
+1. **Set the Pages source to GitHub Actions.**
+   - Today `gh api repos/steven-cutting/tic_tac_toe_beans/pages` answers
+     `"status":"404"` (Not Found).
+   - Without it, `pages.yml` builds its artefact but the deploy job fails with
+     `Failed to create deployment (status: 404)`. See the rendered
+     `docs/how-to/deploy-to-github-pages.md`, "One-time setup", lines 23 and 36.
+   - The first run that reaches the deploy job creates the `github-pages` environment
+     itself.
+2. **Grant the repository read access on the `@steven-cutting/biscuit-games` package.**
+   - Where: the package's Package settings, then Manage Actions access, then Add
+     repository, with the Read role.
+   - Why: the rendered `ci.yml` grants `packages: read` (line 16). Each job points
+     `setup-node` at `https://npm.pkg.github.com` for `@steven-cutting` (lines 42-43,
+     85-86, 138-139) and installs with `NODE_AUTH_TOKEN: ${{ github.token }}` (lines 57,
+     103, 161).
+   - Until the grant exists, that token cannot read the package and `npm ci` fails with
+     `404 Not Found`.
+3. **With both in place,** `frontend`, `documents` and `stories` are expected green on
+   the first push. Those are the three required checks in the rendered
+   `docs/reference/quality-gates.md`, "On `main`".
+4. **The repository is private.** `gh repo view steven-cutting/tic_tac_toe_beans --json
+   isPrivate,visibility` prints `{"isPrivate":true,"visibility":"PRIVATE"}`.
+   - Pages from a private repository needs a paid GitHub plan, so the first `pages.yml`
+     deploy may fail for that reason alone.
+   - Making the repository public, or accepting no deployment for now, is the
+     maintainer's decision.
+
+### Open points settled
+
+1. **typos and the slug or game name: settled, no finding.** In the committed copy,
+   `just check-docs` ran typos over all 126 rendered files, and it passed. Those files
+   carry the slug, the game name and the description. No `extend-words` entry is needed.
+2. **`github.event.repository.name`: carried forward.** The rendered `pages.yml` sets
+   `BASE_PATH: /${{ github.event.repository.name }}` at line 22.
+   - No push in the clone was authorised, so no run has yet shown
+     `BASE_PATH=/tic_tac_toe_beans`.
+   - The check moves to the consumer's first push after C03.
+3. **The description: settled.** The maintainer chose
+   `A three-in-a-row game played with beans.` (Deviations).
+4. **The private repository and Pages: carried forward to C03.** The Pages endpoint
+   answers 404 today because Pages is not configured. Whether to go public is the
+   maintainer's decision.
 
 ## Open points
 
