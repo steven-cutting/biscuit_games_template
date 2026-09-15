@@ -2,55 +2,115 @@
 
 All notable changes to this template are documented here.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions
-are tags on `main`, and what each level means for a rendered game is stated in
-`tickets/CONVENTIONS.md` §10.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
+releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as
+[the README](README.md) defines MAJOR, MINOR and PATCH for a template. Every release
+uses the same four headings: Managed (files an update merges into every game), Seed
+(files a game gets once, on copy), Questionnaire (questions and computed values) and
+Update notes (what a game must do beyond resolving markers).
 
 ## [Unreleased]
 
 ### Managed
 
-- The complete template tree, as a shape: every managed file is rendered from Poodl's
-  copy or a stub, and the lane tickets under `tickets/` replace each one.
-- `.prettierignore` lists `.copier-answers.yml`, which Copier rewrites on every update,
-  and neither it, `.gitattributes` nor either prek config names Poodl's `src/lib/data/`.
-- `tests/ports.test.ts` covers the three ports the template ships, storage, randomness
-  and the clock, so a render's `npm test` no longer imports a clipboard or timer adapter
-  that does not exist.
-- The handbook's project, tutorial and how-to pages in final form: the repository map,
-  the platform page, the first-change tutorial, six how-to pages carried from Poodl, and
-  a new `docs/how-to/update-from-template.md` stating the seed list, the append
-  convention and the update procedure.
-- `package.json` pins `@steven-cutting/biscuit-games` at `1.1.0`, the first release
-  whose `Wordmark` takes `product`. Before it, every render's `svelte-check` failed
-  at `src/lib/components/Lockup.svelte`, and the lockup read "biscuit games" without
-  the game's name.
-
 ### Seed
-
-- Every seed file, in the form CONVENTIONS §7 gives it or as a stub.
-- `docs/decisions/` in final form: the index and ten records, eight carried from Poodl
-  and two new, on being rendered from the template and on the project Pages site. A seed
-  change reaches no game that already exists; none does yet.
-- `stories/Lockup.stories.svelte` in final form: the lockup drawn by the platform's
-  `Wordmark` through `GAME_NAME`, and the header at the narrowest supported width with
-  one `settings` action and no chip. A seed change reaches no game that already exists;
-  none does yet.
-- `README.md`, `CHANGELOG.md` and the two seed project pages, purpose and scope and
-  terminology, in final form. A seed change reaches no game that already exists; none
-  does yet.
 
 ### Questionnaire
 
-- Four questions: `game_name`, `game_slug`, `description`, `repository`.
-- `game_name` and `description` refuse what the render's Markdown would read as
-  syntax: surrounding whitespace, a leading `#`, `>`, `-`, `+`, `*`, `_`, `~` or
-  backtick, a numbered-list start, `<`, square brackets, and a web or email address.
-  `game_name`, the README heading, also refuses a trailing `#`, `.`, `,`, `;`, `:` or
-  `!`.
+### Update notes
+
+## [0.1.0] - 2026-09-14
+
+### Managed
+
+- Configs and the `Justfile` (21): `.editorconfig`, `.gitattributes`, `.gitignore`,
+  `.markdownlint-cli2.jsonc`, `.npmrc`, `.pre-commit-config.yaml`, `.pre-commit-fix.yaml`,
+  `.prettierignore`, `.prettierrc.json`, `.python-version`, `chromatic.config.json`,
+  `eslint.config.js`, `lychee.toml`, `package.json`, `pyproject.toml`, `svelte.config.js`,
+  `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `vitest.storybook.config.ts` and
+  `Justfile`. `package.json` pins `@steven-cutting/biscuit-games` at exactly `1.1.0`, the
+  version `hub_package_version` names and the first release whose `Wordmark` takes
+  `product`. `.prettierignore` lists `.copier-answers.yml`, which Copier rewrites on every
+  update.
+- Scripts (8): `scripts/check_playwright_browsers.js`, `scripts/initialize.sh`,
+  `scripts/install_allium.py`, `scripts/run_allium.py`, `scripts/run_project_check.py`,
+  `scripts/run_ripsecrets_redacted.py`, and the two validators, `scripts/validate_docs.py`
+  and `scripts/validate_agents.py`.
+- Workflows and the Copilot adapter (4): `.github/workflows/ci.yml`,
+  `.github/workflows/chromatic.yml`, which skips the publish without
+  `CHROMATIC_PROJECT_TOKEN`, `.github/workflows/pages.yml`, which publishes a project
+  Pages site with `BASE_PATH` read from the event, and `.github/copilot-instructions.md`.
+- The agent contract (27): `AGENTS.md`, `CLAUDE.md`, `.claude/settings.json`, and eight
+  skills, `accessibility-review`, `code-review`, `fix-quality`, `plan-change`,
+  `project-check`, `review-docs`, `spec-change` and `svelte-change`, each a `SKILL.md`
+  under `.agents/skills/` with its two bridges under `.claude/skills/` and
+  `.codex/skills/`.
+- The handbook with its manifest and map (26): `docs/manifest.yml`, `docs/README.md` and
+  24 pages under `docs/project/`, `docs/tutorials/`, `docs/how-to/`, `docs/explanation/`,
+  `docs/reference/` and `docs/operations/`, among them the new
+  `docs/how-to/update-from-template.md`, which states the seed list, the append convention
+  and the update procedure.
+- Source and tests (12): `src/app.html`, `src/app.d.ts`, `src/routes/+layout.svelte`,
+  `src/routes/+layout.ts`, `src/lib/config.ts` with the six platform figures, the three
+  ports `src/lib/ports/storage.ts`, `src/lib/ports/clock.ts` and
+  `src/lib/ports/random.ts`, and `tests/setup.ts`, `tests/platform.ts`,
+  `tests/platformSpecs.test.ts` and `tests/ports.test.ts`.
+- `.storybook/` (2): `.storybook/main.ts` and `.storybook/preview.ts`.
+- `static/.nojekyll` (1), empty, so that Pages serves `_app/`.
+- 101 managed paths in all, 14 of them expected to be edited by a game (`GAME_EDITED` in
+  `tests/inventory.py`).
+- `.copier-answers.yml` is Copier's and outside the 101: every update rewrites it, and the
+  next update reads it.
+
+### Seed
+
+Rendered once by `copier copy` and never merged, recreated or deleted by an update; the
+seed inventory is frozen with this release (`tickets/CONVENTIONS.md` §5), so no later
+release adds, renames or retitles a seed page or a numbered decision. The 24 seed files
+render under these 14 paths:
+
+- `/README.md`
+- `/CHANGELOG.md`
+- `/SECURITY.md`
+- `/docs/project/purpose-and-scope.md`
+- `/docs/project/terminology.md`
+- `/docs/decisions/`
+- `/docs/specs/`
+- `/src/lib/brand.ts`
+- `/src/lib/components/`
+- `/src/routes/+page.svelte`
+- `/stories/`
+- `/tests/restated.ts`
+- `/tests/lockup.test.ts`
+- `/tests/route.test.ts`
+
+### Questionnaire
+
+- `game_name`, with no default: 2 to 40 characters including a letter. Refuses control
+  characters, braces, surrounding whitespace, a leading `#`, `>`, `-`, `+`, `*`, `_`, `~`,
+  backtick or list number, `<`, square brackets, a web or email address, and a trailing
+  `#`, `.`, `,`, `;`, `:` or `!`.
+- `game_slug`, defaulting to `game_name` lowercased, each run of other characters made one
+  underscore and leading digits dropped: lowercase letters and digits in words joined by
+  single underscores, starting with a letter.
+- `description`, with no default: 10 to 200 characters. Refuses control characters,
+  braces, surrounding whitespace, a leading `#`, `>`, `-`, `+`, `*`, `_`, `~`, backtick or
+  list number, `<`, square brackets, and a web or email address.
+- `repository`, defaulting to `steven-cutting/<game_slug>`: `owner/name`, where the owner
+  is a GitHub account name of letters, digits and hyphens with no leading, trailing or
+  doubled hyphen, and the name is letters, digits, dots, hyphens and underscores, neither
+  `.` nor `..` and not ending in `.git`.
+- Computed and never asked, each `when: false`: `repository_owner`, `repository_name`,
+  `base_path`, `repository_url`, `pages_url`, `game_lockup`, `game_name_escaped`,
+  `game_title_ts`, `game_lockup_ts`, `description_ts`, `hub_scope`, `hub_package`,
+  `hub_package_version` (`1.1.0`) and `template_url`.
+- `_min_copier_version` is `9.18.2`: an older copier is refused.
 
 ### Update notes
 
-- Nothing yet; no game has been rendered from this template.
+- The first release, so there is nothing to update from. A game rendered from `v0.1.0`
+  records `_commit: v0.1.0` in `.copier-answers.yml` and takes later releases with
+  `uvx copier update --skip-answered`.
 
-[Unreleased]: https://github.com/steven-cutting/biscuit_games_template/commits/main/
+[Unreleased]: https://github.com/steven-cutting/biscuit_games_template/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/steven-cutting/biscuit_games_template/releases/tag/v0.1.0

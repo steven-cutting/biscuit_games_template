@@ -1,7 +1,7 @@
 ---
 id: T12
 title: Maintainer docs: the template README, CHANGELOG v0.1.0 and AGENTS.md
-status: open
+status: done
 depends_on: [T11]
 parallel_with: []
 branch: ticket/t12-maintainer-docs
@@ -455,17 +455,213 @@ CHANGELOG states.
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### Outcome
 
-- What was verified and how: the output of every Verification block, quoted.
-- The tag found in step 1 (name, type, date) and the release heading written from it.
-- Whether `scripts/bootstrap_repo.sh` existed (C03 merged) and which form the bootstrap
-  section took; any text C03 handed over and where it went.
-- What deviated from the ticket and why: a fact in step 2 or 3 the merged tree
-  contradicted, a count that differed, a word reworded for typos.
-- What was handed back: a typos exception needed in `pyproject.toml`; a fast-suite
-  failure that is not this ticket's; anything the README needed from another ticket.
-- Which open points were settled, and how.
+- `README.md`, `CHANGELOG.md` and `AGENTS.md` are rewritten. Nothing else in the tree
+  changed except this file.
+- `just check` was green before the first edit and after the three files were written:
+  45 passed and 3 skipped both times.
+- Committed on the ticket branch. Not pushed, and no pull request opened.
+
+### What was verified, and how
+
+Output is quoted. Elisions are in square brackets, and so is the `=` padding of pytest's
+summary lines.
+
+Step 1, before any edit:
+
+```text
+$ git tag --list 'v*'
+v0.1.0
+$ git for-each-ref --format='%(taggerdate:short) %(objecttype)' refs/tags/v0.1.0
+2026-09-14 tag
+$ test -f scripts/bootstrap_repo.sh && echo "C03 merged" || echo "C03 not merged"
+C03 not merged
+$ just check
+[every hook line Passed; mypy: Success: no issues found in 10 source files]
+[...] 45 passed, 3 skipped in 55.59s [...]
+```
+
+The gate, after the three files were written:
+
+```text
+$ just check
+[every hook line Passed, markdownlint, typos, lychee and ripsecrets among them]
+Success: no issues found in 10 source files
+[...] 45 passed, 3 skipped, 31 warnings in 58.55s [...]
+$ git status --porcelain
+ M AGENTS.md
+ M CHANGELOG.md
+ M README.md
+```
+
+The 31 warnings are copier's `DirtyLocalWarning: Dirty template changes included
+automatically.`, raised because the render tests read an uncommitted worktree. The
+baseline, on a clean tree, printed none.
+
+The hooks the acceptance names, alone:
+
+```text
+$ uv run --frozen prek run --all-files markdownlint-cli2
+markdownlint.............................................................Passed
+$ uv run --frozen prek run --all-files typos
+typos....................................................................Passed
+$ uv run --frozen prek run --all-files lychee
+lychee...................................................................Passed
+$ uv run --frozen prek run --all-files ripsecrets
+ripsecrets...............................................................Passed
+```
+
+`check-merge-conflict` and `editorconfig-checker` were also run alone, because the README
+quotes a marker and wraps prose. Both printed `Passed`.
+
+The seed list against `copier.yml`:
+
+```text
+README seed list equals _skip_if_exists (14 entries)
+```
+
+The release heading, links into `template/`, and the size of `AGENTS.md`:
+
+```text
+$ git for-each-ref --format='%(taggerdate:short)' refs/tags/v0.1.0
+2026-09-14
+$ grep -n '^## \[' CHANGELOG.md
+12:## [Unreleased]
+22:## [0.1.0] - 2026-09-14
+$ grep -c '^\[0\.1\.0\]: ' CHANGELOG.md
+1
+$ grep -n '](template/' README.md CHANGELOG.md AGENTS.md; echo "exit $?"
+exit 1
+$ wc -w AGENTS.md
+     194 AGENTS.md
+```
+
+The counts:
+
+```text
+$ uv run --frozen python -c '[the Verification one-liner]'
+101 24 38
+```
+
+The Managed groups in `CHANGELOG.md` were counted against `MANAGED` with a one-off script
+before they were written: configs and `Justfile` 21, scripts 8, workflows and the Copilot
+adapter 4, agent contract 27, handbook 26, source and tests 12, `.storybook/` 2,
+`static/.nojekyll` 1. Every path was assigned, and the total was 101. `GAME_EDITED` holds
+14 paths.
+
+The Unreleased shape:
+
+```text
+$ sed -n '/## \[Unreleased\]/,/## \[0.1.0\]/p' CHANGELOG.md
+## [Unreleased]
+
+### Managed
+
+### Seed
+
+### Questionnaire
+
+### Update notes
+
+## [0.1.0] - 2026-09-14
+```
+
+### The tag and the release heading
+
+- `v0.1.0` is annotated: `for-each-ref` prints `tag`, and `git cat-file -p v0.1.0` names
+  commit `6612b7e` with the message `biscuit_games_template v0.1.0`. The tagger date is
+  2026-09-14.
+- The heading is `## [0.1.0] - 2026-09-14`. The link references are
+  `compare/v0.1.0...HEAD` for `[Unreleased]` and `releases/tag/v0.1.0` for `[0.1.0]`.
+
+### C03 and the bootstrap section
+
+- `scripts/bootstrap_repo.sh` does not exist. `tickets/C03-repository-bootstrap.md` is
+  `status: open`, and its hand-back notes are unfilled, so it handed over no text.
+- `## Bootstrap a repository` therefore lists the five settings and says they are done by
+  hand until C03 lands and its script replaces the list.
+- **For C03:** its step 8 adds its section "after Maintaining", a heading that no longer
+  exists.
+  - Its text belongs in `## Bootstrap a repository`: in place of the closing paragraph
+    and, once the script exists, the numbered list.
+  - Its sentence on this repository belongs in `## Bootstrap of this repository`.
+
+### Deviations, and why
+
+1. **`fast` is not a required check.** Step 2's section 8 says it is.
+   - `gh api repos/steven-cutting/biscuit_games_template/branches/main/protection`
+     answered `{"message":"Branch not protected",[...],"status":"404"}`, and
+     `gh api repos/steven-cutting/biscuit_games_template/rulesets` answered `[]`.
+   - The section now says neither job is required yet, and that C03 applies the
+     protection.
+   - `full` has also passed already. CI run 34931522393 (pull request 12) reported
+     `fast success` and `full success`, and runs 34932434651 and 34936945452 on `main`
+     concluded `success`.
+   - So the section keeps the rule (`full` is required only once the grant is in place
+     and it has gone green), says `full` has passed since pull request 12, and leaves C03
+     to confirm whether a grant is in place or none is needed. `gh` lacks
+     `read:packages`, so this ticket could not read the package's settings.
+2. **`HEAD~2`, not `HEAD~1`.** Step 2's section 6 says the update round trip runs from
+   `HEAD~1`, but `tests/test_update.py` line 151 parametrizes `["HEAD~2", "latest-tag"]`.
+   The README says `HEAD~2`.
+3. **The Unreleased section was neither shape step 3 expects.**
+   - T00 left the four headings with bullets under them, and later tickets appended more.
+   - `git diff --stat v0.1.0 HEAD` names only `tickets/T11-integration.md`, so every one of
+     those bullets described what `v0.1.0` shipped.
+   - They were rewritten from the merged tree into `[0.1.0]`, and the build narration was
+     dropped ("rendered from Poodl's copy or a stub", "none does yet").
+   - The facts were kept: the `.prettierignore` entry, the `1.1.0` pin and why, the
+     `update-from-template.md` page, and the questionnaire's Markdown refusals.
+   - `## [Unreleased]` keeps T00's four headings, now empty. C06's planned test, which
+     requires Unreleased headings to be a subset of the four in order, accepts that.
+4. **`.copier-answers.yml` is not in `MANAGED`.** Step 3 lists it among the managed
+   groups. The CHANGELOG names it as Copier's file, outside the 101.
+5. **The AGENTS.md text in step 4 is 226 words** by `wc -w`, above the 120 to 200 the
+   acceptance allows. The goal says about 150.
+   - It was trimmed to 194, keeping the intro, the untrusted-data sentence and all seven
+     bullets.
+   - What was cut: "and adds nothing" went. The class bullet now leads with
+     `tests/inventory.py` and defines each class in fewer words. "anything under" went.
+     "has been frozen since" became "froze at". "Every change is recorded" became
+     "Record every change". "each" went, and the scratch bullet is shorter.
+   - C06's one appended sentence will take it past 200.
+6. **Branch.** The branch is `T12-maintainer-docs`, which Supacode created, not
+   `ticket/t12-maintainer-docs`. T10, T11 and T13 ran on branches of the same shape.
+7. **Smaller choices.**
+   - The README points at its own sections by name in quotes rather than by anchor
+     links, because step 2 allows only `https://` links and links to files.
+   - `## Bootstrap a repository` adds one sentence saying how this repository differs: it
+     publishes no Pages site, and its checks are `fast` and `full`.
+   - `## Maintain the template` describes each test module by what it asserts in the
+     merged tree. `tests/test_render.py` covers more than the ticket names: the tool pins,
+     stable links from managed pages, and the Markdown refusals.
+   - The root `docs/reports/` is named as a code span, not linked.
+
+### Handed back
+
+- **`pyproject.toml`.** The `[tool.uv]` comment says `see README "Maintaining"`, a heading
+  that is gone; it is `## Maintain the template` now. The file is outside this ticket, so
+  the fix is a one-line T00 follow-up on `main`.
+- **`.github/workflows/ci.yml`.** The `fast` checkout comment still says `HEAD~1`. T10's
+  notes already record this.
+- **C03 step 8.** It names the wrong heading (see above).
+- No typos exception was needed, and no fast-suite failure appeared.
+
+### Open points settled
+
+1. **The tag T11 made: settled.** It is annotated and dated 2026-09-14; the release
+   heading carries that date.
+2. **Whether C03 has merged: settled.** It has not, so the bootstrap section describes
+   the steps by hand.
+3. **typos on the new prose: settled.** It passed on the first run, and no word was
+   reworded.
+4. **The Unreleased shape T00 left: settled.** T00 left four headings, and they are kept
+   empty (deviation 3). The `sed` output is quoted above.
+5. **The counts: settled.**
+   - `tests/inventory.py` gives 38 handbook files, 101 managed paths and 24 seed files.
+   - The twelve gates are the 11 `RECIPES` in `template/scripts/run_project_check.py`
+     plus `check-clean`, the script that `template/Justfile`'s `check` recipe runs.
 
 ## Open points
 
