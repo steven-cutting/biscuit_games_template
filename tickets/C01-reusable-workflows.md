@@ -551,8 +551,9 @@ Expected, in order: `ci / frontend: success`, `ci / documents: success`,
   `check`.
 - In this repository, the three managed workflows are callers pinned to that commit.
   Also changed: `test_pins_agree`, `quality-gates.md`, `update-from-template.md` and
-  `CHANGELOG.md` (Unreleased, MAJOR). All of it is committed on the ticket branch and not
-  yet pushed.
+  `CHANGELOG.md` (Unreleased, MAJOR), and, after review of the pull request,
+  `deploy-to-github-pages.md` and `maintain-dependencies.md`. All of it is committed on the
+  ticket branch.
 - The throwaway game `steven-cutting/c01-throwaway` proved every path with the new
   callers: CI, Pages on push and on dispatch, and `/chromatic` without a token.
 - Still to come, each separately authorised: the pull request on `main` and the `v1.0.0`
@@ -745,6 +746,26 @@ Chromatic run is the revert's push, which sets the baseline. The `/chromatic` ru
 - **`README.md` line 133, also unlisted,** now names `ci / frontend`, `ci / documents` and
   `ci / stories` in the by-hand bootstrap list, for the same reason: the old names became
   false with this change. A repository file reaches no game, so it has no changelog entry.
+- **Two more managed pages, after review of the pull request.** The first draft handed
+  both back, but each became false with this change, the reason the unlisted
+  `update-from-template.md.jinja` and `README.md` were edited, so both are edited too:
+  - `template/docs/how-to/deploy-to-github-pages.md.jinja` said `BASE_PATH` is set "in the
+    workflow's own `env` block". It now says the caller passes `base_path` to
+    `game-pages.yml`, which sets `BASE_PATH` from it, and its opening names the shared
+    workflow.
+  - `template/docs/how-to/maintain-dependencies.md`, under "Actions in the workflows", told
+    a game to move action SHAs in its workflows and to resolve a tag with
+    `git/ref/tags/<tag> --jq .object.sha`. The workflows hold one pin each now, and the
+    tooling repository's tags are annotated, so that command answers `64256881`, the tag
+    object, where the commit is `be41556`. The section now says where the pins moved and
+    resolves a tag with `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`.
+- **Also after review of the pull request.** The `1.0.0` step in
+  `update-from-template.md.jinja` now says what the changelog's Update notes said in fewer
+  words: a step a game added to one of the old jobs moves, by hand, into a workflow file of
+  the game's own. The changelog's Managed entry no longer says every job's setup became
+  `setup-toolchain`, because the Pages build keeps `setup-node` (step 7 under "The tooling
+  repository"). With these edits in place `just check` exited 0 again: `45 passed,
+  3 skipped, 31 warnings in 59.64s`.
 - **`quality-gates.md` changed beyond its two named paragraphs.** The actionlint-gap
   paragraph placed the multi-line shell in `chromatic.yml`, and the `packages: read`
   sentence placed the scope on "the one job in each that does". Both became false, and
@@ -796,13 +817,6 @@ Chromatic run is the revert's push, which sets the baseline. The `/chromatic` ru
 - **To a pull request on `main` for `CONVENTIONS.md` (§11):** §7's exact `ci.yml`,
   `chromatic.yml` and `pages.yml`, §9's description of `test_pins_agree`, and §3's note
   that `test_pins_agree` holds the tool versions equal no longer describe this repository.
-- **Managed pages whose prose no longer holds:**
-  - In `template/docs/how-to/deploy-to-github-pages.md.jinja`, "What the workflow does"
-    says `BASE_PATH` is set "in the workflow's own `env` block". It is now set in the
-    shared workflow's, from `base_path`.
-  - In `template/docs/how-to/maintain-dependencies.md`, "Actions in the workflows" tells a
-    game to move action SHAs in its workflows. They now hold one pin each, the shared
-    workflow's, and the toolchain pins move in the tooling repository.
 - **To C03 or C07, or a T00 follow-up:** `copier.yml`'s `pages_url`
   (`https://<owner>.github.io/<repository>/`) is a redirect for this account, not the
   address Pages serves. The handbook, `AGENTS.md` and a game's README all state it.

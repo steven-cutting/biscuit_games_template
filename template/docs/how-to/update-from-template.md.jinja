@@ -129,6 +129,11 @@ the branch protection on `main` to require the new names, in the repository's br
 settings or with `gh api`. Until then the old names never report, and every pull request
 waits on checks that will not arrive.
 
+A step this game added to one of the old jobs has no place in a caller, because a job that
+calls a workflow holds no steps, and the update moves nothing for you. While resolving the
+markers, move the step by hand into a workflow file of this game's own under
+`.github/workflows/`, which no update touches.
+
 ## Related pages
 
 - [Maintain dependencies](maintain-dependencies.md)

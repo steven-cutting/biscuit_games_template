@@ -142,12 +142,23 @@ lockfiles and relocks after an update;
 
 ## Actions in the workflows
 
-GitHub Actions are pinned to commit SHAs with a version comment, not to tags. To move
-one, resolve the new tag and replace both the SHA and the comment:
+The three workflows hold one pin each, and it is the same one: the shared workflow they
+call in `steven-cutting/biscuit_games_tooling`, pinned to a commit SHA with its release tag
+as a comment, not to the tag. The actions those jobs run and the toolchain versions they
+install are pinned inside that repository and move there. A new release reaches this game
+when a template release moves the pin and this game takes the update.
+
+To move the pin ahead of the template, resolve the release's commit and replace both the
+SHA and the comment in all three files. Its tags are annotated, so ask for the commit: the
+SHA a tag reference answers with names the tag object, which no `uses:` line accepts.
 
 ```console
-gh api repos/actions/checkout/git/ref/tags/v7.0.1 --jq .object.sha
+gh api repos/steven-cutting/biscuit_games_tooling/commits/v0.1.0 --jq .sha
 ```
+
+The three files are managed. An update that moves the pin to the same commit merges
+silently, and one that moves it anywhere else writes markers. An action in a workflow of
+this game's own is pinned the same way, and the same command resolves its tag.
 
 `actionlint` runs inside `just lint`, so a malformed workflow fails locally.
 
