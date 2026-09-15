@@ -26,7 +26,8 @@ authoritative; this table is a snapshot.
 | T08 | Handbook B: explanation, reference and operations pages | `T08-handbook-b.md` | T00 | T01 to T07, T09 | open |
 | T09 | Decision records | `T09-decisions.md` | T00 | T01 to T08 | open |
 | T10 | Harness completion and the `full` CI job | `T10-harness-completion.md` | T01 to T09 | none | open |
-| T11 | Integration: first green render, tag `v0.1.0`, render `tic_tac_toe_beans` | `T11-integration.md` | T10 | none | open |
+| T13 | Hub pin: move `hub_package_version` to the release whose `Wordmark` takes `product` | `T13-hub-pin.md` | T10, and hub `v1.1.0` published | none | open |
+| T11 | Integration: first green render, tag `v0.1.0`, render `tic_tac_toe_beans` | `T11-integration.md` | T10, T13 | none | open |
 | T12 | Maintainer docs: README, CHANGELOG, AGENTS.md | `T12-maintainer-docs.md` | T11 | none | open |
 
 Centralisation tickets. Each is a recommendation written to be picked up on its own;
@@ -49,16 +50,18 @@ T00 ──┬── T01 ──┐
       ├── T02 ──┤
       ├── T03 ──┤
       ├── T04 ──┤
-      ├── T05 ──┼── T10 ── T11 ── T12
-      ├── T06 ──┤          │
-      ├── T07 ──┤          └── C07
+      ├── T05 ──┼── T10 ── T13 ── T11 ── T12
+      ├── T06 ──┤                 │
+      ├── T07 ──┤                 └── C07
       ├── T08 ──┤
       └── T09 ──┘
 C03 (apply to this repository right after T00) ── C01 ── C02, C04
 C05, C06 stand alone (C06 reads tests/inventory.py from T10)
 ```
 
-The graph is acyclic: T00, then nine parallel lanes, then T10, T11, T12 in sequence.
+The graph is acyclic: T00, then nine parallel lanes, then T10, T13, T11, T12 in sequence.
+T13 was added after review of T10's pull request. It also waits for the hub to publish
+`v1.1.0`, which is done in the hub repository.
 
 ## How to pick up a ticket
 

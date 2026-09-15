@@ -734,7 +734,8 @@ Expected: nothing untracked or modified after the commit; no tag (T11 makes the 
   `src/lib/components/Lockup.svelte:20:11`, because the published hub `Wordmark` takes no
   `product`. That is a Non-goal here and is handed back. So two acceptance criteria are
   not met by this ticket: "`test_render_passes_its_own_gate` passed" and "the whole
-  `just test-full` run is green". Every other criterion is met.
+  `just test-full` run is green". Every other criterion is met, except the Files touched
+  criterion, which the T13 bullet under Deviations explains.
 - The status is `done` nonetheless, as step 8 directs. `tickets/README.md` "Definition of
   done" asks for every criterion, so this is the maintainer's call at merge. T01 closed
   `done` with its render criteria unmet by the same svelte-check error, and holding T10
@@ -932,6 +933,18 @@ SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
   and times are as printed. The gate never refused it: prek 0.4.12's
   `check-merge-conflict` passes that line even during a merge and flags only a bare
   `=======` line.
+- **T13, after review of the pull request.** The maintainer directed two things:
+  - The hub pin this ticket hands back gets a ticket of its own, T13.
+  - T13 is written on this branch, so it is on `main` before its worktree is cut.
+
+  So this pull request also changes three ticket files:
+  - It adds `tickets/T13-hub-pin.md`.
+  - It adds T13's row, dependency and graph position to `tickets/README.md`.
+  - It adds T13 to `depends_on` and the Context of `tickets/T11-integration.md`.
+
+  All three are outside the Files touched table, so the criterion "Nothing outside the
+  Files touched table changed" no longer holds as written. No file under `template/`,
+  `tests/` or `.github/` changed for T13.
 - **Questionnaire.** Every refusal raised `ValueError` with the step 3 prefix, so no
   `match=` changed.
 - **Inventory docstring.** It also names `tests/test_update.py` as a reader, because that
@@ -955,7 +968,7 @@ SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
     `analyse-specs`. T05 reports that `frontend-unit`, `frontend-coverage` and
     `storybook-test` fail for the same reason.
   - The remedy T05 names still applies: a hub release carrying `product`, with
-    `hub_package_version` and the `package.json.jinja` pin moved to it. T11 collects it.
+    `hub_package_version` and the `package.json.jinja` pin moved to it. T13 carries it.
 - **After `just initialize`.** No modified file. T05's `M tests/platformSpecs.test.ts` is
   gone since T06's reformat merged.
 - **CONVENTIONS.md §4.** No rendered path is missing from it.
