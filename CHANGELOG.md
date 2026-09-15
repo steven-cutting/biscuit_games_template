@@ -15,6 +15,16 @@ CI and tickets, reaches no game.
 
 ### Managed
 
+### Seed
+
+### Questionnaire
+
+### Update notes
+
+## [1.0.0] - 2026-09-15
+
+### Managed
+
 - `.github/workflows/ci.yml`, `.github/workflows/chromatic.yml` and
   `.github/workflows/pages.yml` become callers of the shared workflows in
   `steven-cutting/biscuit_games_tooling`, pinned to its `v0.1.0` commit: `ci.yml` calls
@@ -143,5 +153,6 @@ render under these 14 paths:
   records `_commit: v0.1.0` in `.copier-answers.yml` and takes later releases with
   `uvx copier update --skip-answered`.
 
-[Unreleased]: https://github.com/steven-cutting/biscuit_games_template/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/steven-cutting/biscuit_games_template/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/steven-cutting/biscuit_games_template/releases/tag/v1.0.0
 [0.1.0]: https://github.com/steven-cutting/biscuit_games_template/releases/tag/v0.1.0
