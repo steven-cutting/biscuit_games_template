@@ -118,7 +118,21 @@ every game is made in the template instead, and arrives by the next update.
 ## Steps by version
 
 A template release that asks something of a game beyond resolving markers records it
-here, newest first. Nothing yet: the first release asks nothing.
+here, newest first.
+
+### 1.0.0
+
+The three workflows call shared workflows in `steven-cutting/biscuit_games_tooling`, and
+the checks they report are renamed: `frontend`, `documents` and `stories` become
+`ci / frontend`, `ci / documents` and `ci / stories`. Once the update is committed, change
+the branch protection on `main` to require the new names, in the repository's branch
+settings or with `gh api`. Until then the old names never report, and every pull request
+waits on checks that will not arrive.
+
+A step this game added to one of the old jobs has no place in a caller, because a job that
+calls a workflow holds no steps, and the update moves nothing for you. While resolving the
+markers, move the step by hand into a workflow file of this game's own under
+`.github/workflows/`, which no update touches.
 
 ## Related pages
 

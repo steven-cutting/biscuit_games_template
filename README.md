@@ -130,8 +130,9 @@ A rendered game's repository needs five things no file can carry:
 
 1. The Pages source set to GitHub Actions. Until it is, `pages.yml` builds its artefact
    and the deploy job fails with `Failed to create deployment (status: 404)`.
-2. Protection on `main` requiring the checks `frontend`, `documents` and `stories`: not
-   required to be up to date, no review required, force pushes and deletion refused.
+2. Protection on `main` requiring the checks `ci / frontend`, `ci / documents` and
+   `ci / stories`: not required to be up to date, no review required, force pushes and
+   deletion refused.
 3. `CHROMATIC_PROJECT_TOKEN` as a repository secret. It is optional: without it
    `chromatic.yml` reports and skips the publish.
 4. Private vulnerability reporting switched on where GitHub offers it, which is on public

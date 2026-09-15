@@ -9,7 +9,8 @@ requires: []
 # Deploy to GitHub Pages
 
 This game publishes to GitHub Pages from `.github/workflows/pages.yml` on every push to
-`main`. The workflow builds the static site and hands `build/` to the Pages deployment
+`main`. Its one job calls `game-pages.yml` in `steven-cutting/biscuit_games_tooling`, at a
+pinned release, which builds the static site and hands `build/` to the Pages deployment
 action; nothing is committed to a branch.
 
 The site is a project site, served at <{{ pages_url }}>: the repository
@@ -48,8 +49,9 @@ the starting point.
 
 ## What the workflow does
 
-- Sets `BASE_PATH` from the repository name in the event, in the workflow's own `env`
-  block, so the build cannot drift from where Pages serves it.
+- Passes a slash and the repository name, read from the event, to the shared workflow as
+  its `base_path` input, and the shared workflow sets `BASE_PATH` from it, so the build
+  cannot drift from where Pages serves it.
 - Builds with `npm run build`, which is `just frontend-build`.
 - Uploads `build/` as the Pages artefact. `static/.nojekyll` rides along so Pages serves
   the underscore-prefixed `_app/` directory rather than treating it as a Jekyll internal.
