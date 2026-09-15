@@ -280,7 +280,7 @@ hub_package:
 
 hub_package_version:
   type: str
-  default: 1.0.0
+  default: 1.1.0
   when: false
 
 template_url:

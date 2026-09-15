@@ -23,7 +23,7 @@ numbers that refer to these exact commits:
 | Letter | Repository | Local clone | Commit |
 | --- | --- | --- | --- |
 | **P** | `steven-cutting/poodl`, the first Biscuit Games game | `/Users/scutting/projects/poodl` | `0a46a485` (HEAD on 2026-09-09) |
-| **H** | `steven-cutting/biscuit_games`, the hub that publishes the platform package | `/Users/scutting/projects/biscuit_games` | `09b4894a` (HEAD on 2026-09-09; the tag `v1.0.0` sits four commits earlier at `dfebaf4`, and every file this design takes from H is identical at both) |
+| **H** | `steven-cutting/biscuit_games`, the hub that publishes the platform package | `/Users/scutting/projects/biscuit_games` | `09b4894a` (HEAD on 2026-09-09; the tag `v1.0.0` sits four commits earlier at `dfebaf4`, and every file this design takes from H is identical at both; the tag `v1.1.0`, which the render pins, sits two commits after `09b4894a` at `ca0ca0a` and differs from it only in the release cut) |
 | **foo/www** | the earlier copier template Poodl was distilled from | `/Users/scutting/projects/foo/www` | `42ed403` |
 
 The first consumer is `steven-cutting/tic_tac_toe_beans`, cloned at
@@ -380,7 +380,7 @@ hub_package:
 
 hub_package_version:
   type: str
-  default: 1.0.0
+  default: 1.1.0
   when: false
 
 template_url:

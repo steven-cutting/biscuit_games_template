@@ -256,7 +256,7 @@ def test_pins_agree(default_render: Render) -> None:
     assert package["packageManager"] == "npm@11.17.0"
     assert default_render.read(".python-version").strip() == "3.14"
     hub_version = _copier_config()["hub_package_version"]["default"]
-    assert hub_version == "1.0.0"
+    assert hub_version == "1.1.0"
     assert package["dependencies"]["@steven-cutting/biscuit-games"] == hub_version
 
 

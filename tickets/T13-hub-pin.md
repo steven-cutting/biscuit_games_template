@@ -1,7 +1,7 @@
 ---
 id: T13
 title: "Hub pin: move hub_package_version to 1.1.0, so a render passes its own gate"
-status: open
+status: done
 depends_on: [T10]
 parallel_with: []
 branch: ticket/t13-hub-pin
@@ -228,16 +228,140 @@ Expected:
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### Outcome
 
-- The published versions and the `grep -c product` count from step 1, and the hub
-  commit written into §0.
-- The tails of `just check` and `just test-full`, with the elapsed time and the five
-  slowest durations.
-- Whether each recipe of the render's gate passed. For any that failed: the rendered
-  path, its owning lane, the output and the proposed fix.
-- The pull request's `fast` and `full` results, if the push was authorised.
-- What deviated from the ticket, and why.
+- Carried out on `T10-harness-completion`, the branch of the template's pull request 12,
+  at the maintainer's direction (Deviations).
+- The pin reads `1.1.0` in `copier.yml`, `template/package.json.jinja`,
+  `tests/test_render.py` and CONVENTIONS.md §3. §0's H row names `v1.1.0` and its
+  commit, and `CHANGELOG.md` carries the Managed bullet.
+- `just check` is green: 44 passed, 4 skipped.
+- `just test-full` is green, and `test_render_passes_its_own_gate` passed. The render's
+  whole gate ran for the first time: `just initialize`, all eleven recipes, then
+  `check-clean`.
+- No tag was created and no repository setting was changed.
+
+### What was verified, and how
+
+Step 1, before any edit:
+
+```text
+$ grep -c '^//npm.pkg.github.com/:_authToken=' ~/.npmrc
+1
+$ npm view @steven-cutting/biscuit-games versions dist-tags time --registry=https://npm.pkg.github.com --json
+[...] "versions": ["1.0.0", "1.1.0"], "dist-tags": {"latest": "1.1.0"} [...] "1.1.0": "2026-09-15T04:55:28Z"
+$ npm pack @steven-cutting/biscuit-games@1.1.0 --registry=https://npm.pkg.github.com --pack-destination ai_tmp/hub-1.1.0
+[...]
+steven-cutting-biscuit-games-1.1.0.tgz
+$ tar -xOzf ai_tmp/hub-1.1.0/steven-cutting-biscuit-games-1.1.0.tgz package/dist/components/Wordmark.svelte | grep -c product
+3
+$ git ls-remote --tags https://github.com/steven-cutting/biscuit_games.git
+dfebaf41b101c36a134a1373ac82e1944bbd324a refs/tags/v1.0.0
+2a51533a61d79df0b627ebdc510536333d01d89f refs/tags/v1.1.0
+ca0ca0a0e88795c737c04e0eb74fce91b870dcd2 refs/tags/v1.1.0^{}
+```
+
+`3` is the count T05 printed for its package built from hub `main`. The hub's Release
+run on `v1.1.0` is `34930610026`, which succeeded. Comparing `09b4894a...ca0ca0a` on
+GitHub lists two commits: `cda64f9` ("Cut 1.1.0, so a game can name itself in the
+Wordmark") and the merge `ca0ca0a`. They touch five files: `CHANGELOG.md`,
+`docs/how-to/consume-the-hub.md`, `docs/operations/poodl-handover.md`, `package.json` and
+`package-lock.json`.
+
+Step 2's starting point, on the branch at `341c303`: `git grep -n '1\.0\.0' -- copier.yml
+template tests` printed `copier.yml:283`, `template/package.json.jinja:34` and
+`tests/test_render.py:259`. `just check` printed `44 passed, 4 skipped in 47.10s`.
+
+Steps 3 to 5. The edits were applied, and then the three commands ran as one chain on the
+uncommitted tree, logged to `ai_tmp/`:
+
+```text
+$ git grep -n '1\.0\.0' -- copier.yml template tests
+[nothing; exit 1]
+$ just test tests/test_render.py
+[...] 23 passed, 16 warnings in 12.90s [...]
+$ just check
+[every hook line ending Passed; mypy: Success: no issues found in 10 source files]
+[...] 44 passed, 4 skipped, 31 warnings in 45.28s [...]
+$ just test-full -v -s --durations=5
+tests/test_full.py::test_render_passes_its_own_gate sh scripts/initialize.sh
+[...]
+Ready. Next: just check.
+Nothing has been staged, committed, tagged, or pushed.
+uv run --frozen python scripts/run_project_check.py run
+==> just lock-check
+==> just lint
+==> just frontend-static
+[...] COMPLETED 816 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+==> just frontend-coverage
+ Test Files  4 passed (4)
+      Tests  30 passed (30)
+Statements   : 100% ( 54/54 )
+Branches     : 100% ( 15/15 )
+Functions    : 100% ( 23/23 )
+Lines        : 100% ( 52/52 )
+==> just frontend-build
+==> just storybook-build
+[...]
+Storybook build completed successfully
+==> just storybook-test
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+==> just check-docs
+==> just check-agents
+==> just check-specs
+==> just analyse-specs
+allium analyse: 1 specifications, no diagnostics and no findings.
+==> just check-clean
+The worktree matches the check baseline.
+
+All checks passed and the worktree is unchanged.
+PASSED
+[...]
+45.37s call     tests/test_full.py::test_render_passes_its_own_gate
+11.19s call     tests/test_update.py::test_update_keeps_game_work
+11.02s call     tests/test_update.py::test_pristine_update_equals_fresh_render[HEAD~2]
+2.28s call     tests/test_questionnaire.py::test_computed_defaults
+2.27s call     tests/test_render.py::test_markdown_punctuation_inside_an_answer_is_accepted
+SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
+[...] 47 passed, 1 skipped, 31 warnings in 92.54s (0:01:32) [...]
+```
+
+The chain's own timer put `just test-full` at 93 s on a warm machine, where Chromium and
+allium were already downloaded.
+
+After the edits, `git status --porcelain` printed exactly the five paths in Files touched.
+
+### Deviations, and why
+
+- **Branch.** The hub published `1.1.0` while pull request 12 was still open, and the
+  maintainer asked for the failing `full` job to be tried again on that branch. So this
+  ticket was carried out on `T10-harness-completion`, not on `ticket/t13-hub-pin` from
+  `main`. Step 2's worktree was never created, and its baseline is that branch at
+  `341c303`.
+- **Uncommitted run.** Steps 4 and 5 ran before the commit, so copier raised its
+  `DirtyLocalWarning`. The rendered bytes are the committed ones.
+- **§0's wording.** The H row says `v1.1.0` sits "two commits after `09b4894a` at
+  `ca0ca0a`" and differs from it "only in the release cut". The comparison above is the
+  evidence for both claims.
+
+### Handed back
+
+- **T11.** Its step 2 needs a render whose `just check` is green, and one now is. T11
+  still starts from `main` after pull request 12 merges.
+- **Noise, not a defect.** `storybook-build` prints Node's `DEP0205` deprecation warning
+  for `module.register()`, and Vite's advice to adjust `build.chunkSizeWarningLimit`.
+  Neither fails the recipe.
+
+### Open points settled
+
+1. **`storybook-build` and the final worktree check: hold.** Both passed in step 5
+   ("Storybook build completed successfully" and "The worktree matches the check
+   baseline.").
+2. **What else `1.1.0` carries: nothing that changes a render.** The published tree
+   differs from the hub `main` T05 built only in the release cut. Step 5's
+   `frontend-coverage` ran 30 tests, `tests/platformSpecs.test.ts` among them, and all
+   30 passed.
 
 ## Open points
 
