@@ -26,7 +26,8 @@ CI and tickets, reaches no game.
   `chromatic.yml` and `pages.yml` hold `packages: read` beside the workflow's scopes, which
   the called jobs narrow as the jobs here did.
 - `docs/reference/quality-gates.md` names the shared workflow and the renamed required
-  checks.
+  checks, and `docs/how-to/update-from-template.md` records the protection change as the
+  first of its steps by version.
 
 ### Seed
 

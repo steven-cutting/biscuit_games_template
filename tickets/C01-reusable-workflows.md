@@ -1,7 +1,7 @@
 ---
 id: C01
 title: Reusable workflows and a composite toolchain action for every game
-status: open
+status: done
 depends_on: [C03]
 parallel_with: []
 branch: ticket/c01-reusable-workflows
@@ -543,16 +543,304 @@ Expected, in order: `ci / frontend: success`, `ci / documents: success`,
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### Outcome
 
-- What was verified and how: quote the output of every command above, the exact
-  check-run names GitHub reported, and the `BASE_PATH` the Pages build logged.
-- What deviated from the ticket and why, with the file and the reason.
-- What was handed back to another ticket: C02 and C04 (the host is now decided),
-  C07 (whether Poodl keeps `stage`/`artifact_path` or its own `pages.yml`), and any
-  handbook page beyond `quality-gates.md` whose prose no longer holds
-  (`docs/how-to/deploy-to-github-pages.md` describes what `pages.yml` does).
-- Which open points were settled, and how each check came out.
+- `steven-cutting/biscuit_games_tooling` exists, is public, and is tagged `v0.1.0` at
+  `be41556ff01d00aba77cfac4c34f9727b8580bd6`. It holds the three `workflow_call`
+  workflows, `actions/setup-toolchain/action.yml` and its own gate. Its `main` requires
+  `check`.
+- In this repository, the three managed workflows are callers pinned to that commit.
+  Also changed: `test_pins_agree`, `quality-gates.md`, `update-from-template.md` and
+  `CHANGELOG.md` (Unreleased, MAJOR). All of it is committed on the ticket branch and not
+  yet pushed.
+- The throwaway game `steven-cutting/c01-throwaway` proved every path with the new
+  callers: CI, Pages on push and on dispatch, and `/chromatic` without a token.
+- Still to come, each separately authorised: the pull request on `main` and the `v1.0.0`
+  tag; the maintainer deleting the throwaway in the web UI; Poodl's adoption, handed to
+  the maintainer as a Claude Code prompt to run in Poodl.
+
+### What was verified, and how
+
+Output is quoted. Elisions are in square brackets, and so is the `=` padding of pytest's
+summary lines.
+
+The tooling repository. Commit `73df4e2` is the action alone, and `be41556` is everything
+else:
+
+```text
+$ just check
+uv lock --check
+Resolved 2 packages in 3ms
+uv run --frozen prek run --all-files
+[check for added large files, case conflicts, merge conflicts, shebang scripts, toml,
+yaml, private key: Passed; shebangs and json: no files to check]
+markdownlint.............................................................Passed
+typos....................................................................Passed
+Lint GitHub Actions workflow files.......................................Passed
+ripsecrets...............................................................Passed
+$ uv run --frozen prek run --all-files actionlint check-yaml
+check yaml...............................................................Passed
+Lint GitHub Actions workflow files.......................................Passed
+$ gh run view 34945297742 -R steven-cutting/biscuit_games_tooling --json conclusion,jobs [...]
+"conclusion":"success", job "check": "Run ./actions/setup-toolchain: success",
+"Run just sync: success", "Run just check: success"
+$ git ls-remote --tags origin 'v0.1.0*'
+64256881a196ba046822c9d6e66a941b456a1eaf  refs/tags/v0.1.0
+be41556ff01d00aba77cfac4c34f9727b8580bd6  refs/tags/v0.1.0^{}
+$ gh api repos/steven-cutting/biscuit_games_tooling/branches/main/protection --jq [C03's read]
+false check false false false false false
+```
+
+actionlint hands no `run:` block to shellcheck under prek (`quality-gates.md`). So the
+three multi-line blocks of `game-chromatic.yml` were extracted and checked with
+shellcheck 0.11.0 by hand: the `authorize` gate (85 lines), the token check (6) and the
+reply (26). Exit 0. A control file carrying `echo $undefined_var` exited 1 with SC2154 and
+SC2086, so the tool was reading.
+
+This repository, with the callers pinned (commit `577f706`):
+
+```text
+$ just check
+[every hook line Passed, Lint GitHub Actions workflow files among them]
+Success: no issues found in 10 source files
+[...] 45 passed, 3 skipped, 31 warnings in 60.76s (0:01:00) [...]
+$ uv run --frozen prek run --all-files actionlint
+Lint GitHub Actions workflow files.......................................Passed
+$ grep -n 'biscuit_games_tooling/.github/workflows/' template/.github/workflows/*.yml
+template/.github/workflows/ci.yml:28:    uses: steven-cutting/biscuit_games_tooling/.github/workflows/game-ci.yml@be41556ff01d00aba77cfac4c34f9727b8580bd6 # v0.1.0
+template/.github/workflows/chromatic.yml:46:    uses: steven-cutting/biscuit_games_tooling/.github/workflows/game-chromatic.yml@be41556ff01d00aba77cfac4c34f9727b8580bd6 # v0.1.0
+template/.github/workflows/pages.yml:31:    uses: steven-cutting/biscuit_games_tooling/.github/workflows/game-pages.yml@be41556ff01d00aba77cfac4c34f9727b8580bd6 # v0.1.0
+```
+
+The three skips are `test_full` and the two `test_specs` cases, which need
+`BISCUIT_TEMPLATE_FULL` and `BISCUIT_TEMPLATE_NETWORK`. The 31 warnings are copier's
+`DirtyLocalWarning`.
+
+The throwaway game was made with `just render ai_tmp/c01-game` from `577f706`, then
+`git init -b main`, `just initialize` (exit 0), `just check` (exit 0, ending "All checks
+passed and the worktree is unchanged.") and a commit, `3d02eb5`:
+
+```text
+$ gh api -X POST repos/steven-cutting/c01-throwaway/pages -f build_type=workflow   [before the first push]
+{"build_type":"workflow","html_url":"http://stevencutting.com/c01-throwaway/"}
+$ gh api repos/steven-cutting/c01-throwaway/branches/main/protection --jq '[.required_status_checks.checks[].context]'
+["ci / frontend","ci / documents","ci / stories"]
+$ gh run list --commit 3d02eb5 --event push [...]
+Chromatic 34945783019: success
+Deploy to GitHub Pages 34945782902: success
+CI 34945783035: success
+$ gh api repos/steven-cutting/c01-throwaway/commits/3d02eb5[...]/check-runs --jq [name: conclusion]
+chromatic / chromatic: success
+chromatic / authorize: success
+pages / deploy: success
+ci / documents: success
+ci / frontend: success
+ci / stories: success
+pages / build: success
+[chromatic / authorize and chromatic / chromatic once more: the /chromatic run below]
+$ gh run view 34945782902 --log | grep BASE_PATH   [push]
+pages / build | BASE_PATH: /c01-throwaway
+pages / deploy | BASE_PATH: /c01-throwaway
+$ gh run view 34946072661 --log | grep BASE_PATH   [workflow_dispatch, success]
+pages / build | BASE_PATH: /c01-throwaway
+pages / deploy | BASE_PATH: /c01-throwaway
+```
+
+Pull request #1 came from the branch `c01-chromatic-review`. Its CI, run 34945838871,
+succeeded, and the head `605fc71` reports `ci / frontend`, `ci / documents` and
+`ci / stories`, each `success`. The comment `/chromatic` got a `rocket` reaction, and run
+34945840577 finished `success`:
+
+```text
+chromatic / authorize: Decide whether this comment may publish: success
+chromatic / chromatic: Run steven-cutting/biscuit_games_tooling/actions/setup-toolchain@73df4e2[...]: success
+  Run just sync: success
+  Note whether a Chromatic token is configured: success
+  ##[notice]CHROMATIC_PROJECT_TOKEN is not set; skipping the publish.
+  Publish the workshop to Chromatic: skipped
+  Report back on the pull request: success
+github-actions[bot]: No Chromatic build was published: `CHROMATIC_PROJECT_TOKEN` is not set on this repository. The run finished `success` and is at https://github.com/steven-cutting/c01-throwaway/actions/runs/34945840577
+```
+
+The Codex app's review-summary comment on the same pull request started a second
+`issue_comment` run, 34946057508. It finished `skipped`, because the job's prefilter
+refused a comment that is not `/chromatic`.
+
+The scope experiment ran on the throwaway's `main`. Commit `0d4ca05` dropped
+`packages: read` from the `pages` calling job and was pushed, and commit `98b2940`
+reverted it:
+
+```text
+$ gh run view 34946332089   [the Pages run on 0d4ca05]
+X main Deploy to GitHub Pages · 34946332089
+X This run likely failed because of a workflow file issue.
+$ gh api repos/steven-cutting/c01-throwaway/actions/runs/34946332089 --jq '{conclusion, path}'
+{"conclusion":"startup_failure","path":".github/workflows/pages.yml"}
+[the run's page, at .github/workflows/pages.yml line 23, column 3:]
+Error calling workflow 'steven-cutting/biscuit_games_tooling/.github/workflows/game-pages.yml@be41556ff01d00aba77cfac4c34f9727b8580bd6'. The nested job 'build' is requesting 'packages: read', but is only allowed 'packages: none'.
+$ gh run list --commit 98b2940 --event push [...]
+Deploy to GitHub Pages 34946370657: success
+Chromatic 34946370778: success
+CI 34946370763: success
+$ git diff 3d02eb5 98b2940 --stat
+[empty: the revert's tree is the first push's]
+```
+
+The failure text is only on the run's web page. `gh run view` does not print it, and the
+GraphQL check suite reads `STARTUP_FAILURE` with no check runs. The experiment's CI run,
+34946332106, was cancelled when the revert was pushed (`ci.yml`'s
+`cancel-in-progress`). Its Chromatic run, 34946332147, succeeded.
+
+The ticket's verification ran on the throwaway's final `main`, `98b2940`, with `R` set to
+`steven-cutting/c01-throwaway`:
+
+```text
+$ gh api "repos/$R/commits/$(git rev-parse main)/check-runs" --jq '.check_runs[] | "\(.name): \(.conclusion)"'
+pages / deploy: success
+chromatic / chromatic: success
+ci / stories: success
+ci / frontend: success
+ci / documents: success
+chromatic / authorize: success
+pages / build: success
+$ gh api "repos/$R/branches/main/protection" --jq '[.required_status_checks.checks[].context]'
+["ci / frontend","ci / documents","ci / stories"]
+$ gh run list --repo "$R" --workflow Chromatic --limit 1
+completed  success  Revert "Drop packages: read from the pages caller job, to read the fa…  Chromatic  main  push  34946370778  55s  2026-09-15T08:19:59Z
+$ gh run list --repo "$R" --workflow Chromatic --event issue_comment --limit 2
+completed  skipped  Test /chromatic through the shared workflow  Chromatic  main  issue_comment  34946057508  2s  2026-09-15T08:16:29Z
+completed  success  Test /chromatic through the shared workflow  Chromatic  main  issue_comment  34945840577  37s  2026-09-15T08:14:07Z
+$ gh run list --repo "$R" --workflow 'Deploy to GitHub Pages' --limit 1
+completed  success  Revert "Drop packages: read from the pages caller job, to read the fa…  Deploy to GitHub Pages  main  push  34946370657  43s  2026-09-15T08:19:59Z
+$ curl -sI https://steven-cutting.github.io/c01-throwaway/ | head -n 1
+HTTP/2 301
+$ curl -sIL https://steven-cutting.github.io/c01-throwaway/ | grep -iE '^(HTTP|location)'
+HTTP/2 301
+location: https://stevencutting.com/c01-throwaway/
+HTTP/2 200
+$ gh api repos/steven-cutting/biscuit_games_tooling --jq .visibility
+public
+```
+
+`gh run list` separates its columns with tabs, shown here as two spaces. The latest
+Chromatic run is the revert's push, which sets the baseline. The `/chromatic` run is the
+`issue_comment` one, listed with the skipped run the Codex comment started.
+
+### Deviations
+
+- **C03 had not run.** `scripts/bootstrap_repo.sh` does not exist, so this ticket did not
+  edit it. Both new repositories were protected with a direct `gh api -X PUT
+  .../branches/main/protection` carrying C03 step 2's body. The maintainer chose this on
+  2026-09-15 rather than doing C03 first.
+- **Poodl got a prompt, not a pull request.** Cross-repository work goes to the maintainer
+  as a Claude Code prompt to run in that repository, so nothing in Poodl was touched. The
+  prompt carries the three callers (`pages.yml` with `base_path: /poodl`, `stage: true`,
+  `artifact_path: site`), the `quality-gates.md` edits, the protection change before the
+  merge, and a stop before every outward step.
+- **`template/docs/how-to/update-from-template.md.jinja`, a file this ticket does not
+  list,** gained a `### 1.0.0` entry under "Steps by version". The section said "Nothing
+  yet: the first release asks nothing", which this release makes false, and it is where a
+  game looks for what a release asks of it. The change is recorded under Managed in
+  `CHANGELOG.md`.
+- **`quality-gates.md` changed beyond its two named paragraphs.** The actionlint-gap
+  paragraph placed the multi-line shell in `chromatic.yml`, and the `packages: read`
+  sentence placed the scope on "the one job in each that does". Both became false, and
+  both were rewritten.
+- **The tooling repository has 14 files, not 13.** `.markdownlint-cli2.jsonc` turns MD013
+  off, as Poodl's and this repository's configs do, because the README's caller fences
+  carry `uses:` lines wider than markdownlint's default of 80 columns.
+- **Comments in the called workflows.** A script sliced the three workflows from this
+  repository's copies and diffed them against the originals. The diff shows only these
+  comment edits:
+  - the note in `game-chromatic.yml` naming the required checks now names the `ci / …`
+    contexts;
+  - the two job-block comments that said a block "replaces the workflow's" now say what a
+    called job's block does;
+  - `authorize` and `deploy` each gained a comment over their new `permissions`;
+  - the upload's comment covers `artifact_path`;
+  - `game-ci.yml` and `game-chromatic.yml` open with a short header comment.
+- **Comments in the callers.**
+  - `ci.yml` names the three contexts over `ci:`.
+  - `chromatic.yml` says the secret is optional.
+  - `pages.yml` carries the substance of the old workflow-level `env` comment (lines
+    16-20) on `with:`, instead of the one-line comment in step 1's fence, because
+    `base_path` is the block that comment described.
+- **`test_pins_agree` asserts two things more.** Each workflow calls its own counterpart
+  (`ci.yml` calls `game-ci.yml`, and so on), and all three pin one SHA and one tag.
+- **The throwaway's site is served from a custom domain.** The account's user Pages site
+  has one, so `https://steven-cutting.github.io/c01-throwaway/` answers `HTTP/2 301` to
+  `https://stevencutting.com/c01-throwaway/`, which answers `HTTP/2 200` with the title
+  "Tic Tac Toe Beans". The ticket expected `HTTP/2 200` on the first address.
+- **The throwaway is not deleted.** The `gh` token lacks `delete_repo`, and the maintainer
+  chose to delete the repository in the web UI.
+- **Branch name and release.** The branch is the Supacode worktree's
+  `C01-reusable-workflows-2026-9-15`, as T10 to T12's were. The release is `v1.0.0`, the
+  maintainer's choice.
+
+### Handed back
+
+- **To C03:**
+  - `--checks` should default to `ci / frontend,ci / documents,ci / stories`. The names
+    carry spaces, so the list is split on commas alone, with no trimming.
+  - The expected protection line becomes
+    `false ci / documents,ci / frontend,ci / stories false false false false false`.
+  - Step 8's "Bootstrap" text and `README.md` line 133 name the old contexts.
+  - Two of C03's open points were settled here. `POST /repos/{owner}/{repo}/pages` accepted
+    `build_type=workflow` with no `source` on a repository that had no commits yet. A
+    `checks` list without `app_id` was accepted before any workflow had run, and it read
+    back as sent.
+- **To a pull request on `main` for `CONVENTIONS.md` (§11):** §7's exact `ci.yml`,
+  `chromatic.yml` and `pages.yml`, §9's description of `test_pins_agree`, and §3's note
+  that `test_pins_agree` holds the tool versions equal no longer describe this repository.
+- **Managed pages whose prose no longer holds:**
+  - In `template/docs/how-to/deploy-to-github-pages.md.jinja`, "What the workflow does"
+    says `BASE_PATH` is set "in the workflow's own `env` block". It is now set in the
+    shared workflow's, from `base_path`.
+  - In `template/docs/how-to/maintain-dependencies.md`, "Actions in the workflows" tells a
+    game to move action SHAs in its workflows. They now hold one pin each, the shared
+    workflow's, and the toolchain pins move in the tooling repository.
+- **To C03 or C07, or a T00 follow-up:** `copier.yml`'s `pages_url`
+  (`https://<owner>.github.io/<repository>/`) is a redirect for this account, not the
+  address Pages serves. The handbook, `AGENTS.md` and a game's README all state it.
+- **To C02 and C04:** the host is `steven-cutting/biscuit_games_tooling`, public, released
+  as annotated `vMAJOR.MINOR.PATCH` tags that callers pin by commit. `v0.1.0` is `be41556`.
+- **To C07:** whether Poodl keeps `stage` and `artifact_path`, which the prompt uses, or
+  takes the template's project-site `pages.yml`. Poodl's `chromatic.yml` lacks the token
+  guard the shared workflow carries, so adopting it changes what happens only while the
+  secret is unset.
+- **`tic_tac_toe_beans`** is unprotected today. When it takes this release, its protection
+  uses the new names, as the `1.0.0` step says.
+- **Seed decisions 0006 and 0007** name `documents` and `stories` as CI jobs, which stays
+  true. They are untouched.
+
+### Open points, settled
+
+- **A relative `uses:` inside a called workflow:** not tried. The workflows use the
+  `owner/repo/path@sha` form, and every job ran
+  `steven-cutting/biscuit_games_tooling/actions/setup-toolchain@73df4e2[...]: success`.
+- **A called job cannot hold a scope the calling job lacks:** see the scope experiment
+  above.
+- **Check-run names:** exactly `ci / frontend`, `ci / documents` and `ci / stories`, plus
+  `pages / build`, `pages / deploy`, `chromatic / authorize` and `chromatic / chromatic`.
+- **Public reusable workflows need no access setting:**
+  `gh api repos/steven-cutting/biscuit_games_tooling/actions/permissions/access` answered
+  `Access policy only applies to internal and private repositories. (HTTP 422)`, and the
+  throwaway's runs started with nothing set.
+- **`github.event.repository.name` in `with:`, and `inputs` in a called workflow's
+  workflow-level `env`:** `BASE_PATH: /c01-throwaway` on the push run and on the dispatch
+  run.
+- **`setup-node` with an empty `cache:`:** accepted. The tooling repository's run
+  34945297742 logged the action's inputs as `node-version: 26`,
+  `cache-dependency-path: package-lock.json` and `package-manager-cache: true`, with no
+  `cache`, and the job passed.
+- **Release level:** MAJOR, confirmed with the maintainer, to be tagged `v1.0.0` once
+  merged.
+- **Not in the ticket, and settled by the same runs:**
+  - A caller's workflow-level `permissions` reaches a calling job that has no block of its
+    own: `ci / *` installed the package under `ci.yml`'s workflow-level `packages: read`.
+  - `actions/deploy-pages` works inside a reusable workflow hosted in another repository.
+  - No package grant was added for the throwaway, and every install with the run's token
+    succeeded.
 
 ## Open points
 
