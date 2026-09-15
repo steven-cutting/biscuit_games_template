@@ -728,18 +728,25 @@ Expected: nothing untracked or modified after the commit; no tag (T11 makes the 
 - `tests/test_update.py` needed one change beyond ruff's layout. The step 4 code matched a
   conflict marker anywhere in a file, and two shipped pages quote both markers in prose
   (Deviations, below).
-- `test_render_passes_its_own_gate` fails, for the reason T00, T01 and T05 each handed
-  back. In the render, `just initialize` exits 0 and leaves only the two lockfiles, and
-  `lock-check` and `lint` pass. `frontend-static` then stops at svelte-check on
-  `src/lib/components/Lockup.svelte:20:11`, because the published hub `Wordmark` takes no
-  `product`. That is a Non-goal here and is handed back. So two acceptance criteria are
-  not met by this ticket: "`test_render_passes_its_own_gate` passed" and "the whole
-  `just test-full` run is green". Every other criterion is met, except the Files touched
-  criterion, which the T13 bullet under Deviations explains.
+- On this ticket's own changes, `test_render_passes_its_own_gate` failed, for the reason
+  T00, T01 and T05 each handed back:
+  - In the render, `just initialize` exits 0 and leaves only the two lockfiles, and
+    `lock-check` and `lint` pass.
+  - `frontend-static` then stopped at svelte-check on
+    `src/lib/components/Lockup.svelte:20:11`, because the published hub `Wordmark` took no
+    `product`.
+
+  That fix is a Non-goal here, and it was handed back.
+- After review of the pull request, the hub published `1.1.0`, and T13 moved the pin to it
+  on this branch. With T13's commit, `test_render_passes_its_own_gate` passes and the whole
+  `just test-full` run is green (hand-back notes of `tickets/T13-hub-pin.md`). So on this
+  pull request those two criteria are met, through T13 rather than through this ticket's
+  own files. Every other criterion is met, except the Files touched criterion, which the
+  T13 bullet under Deviations explains.
 - The status is `done` nonetheless, as step 8 directs. `tickets/README.md` "Definition of
   done" asks for every criterion, so this is the maintainer's call at merge. T01 closed
   `done` with its render criteria unmet by the same svelte-check error, and holding T10
-  open would stall T11, which depends on it and collects the hub release.
+  open would stall T11, which depends on it and on T13.
 - This ticket does not make `full` a required check and changed no repository setting;
   `fast` stays the one required check. On this ticket's pull request, `fast` passed.
   `full` did not fail at `npm ci`, as this ticket expected: the render installed the hub
@@ -933,18 +940,24 @@ SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
   and times are as printed. The gate never refused it: prek 0.4.12's
   `check-merge-conflict` passes that line even during a merge and flags only a bare
   `=======` line.
-- **T13, after review of the pull request.** The maintainer directed two things:
+- **T13, after review of the pull request.** The maintainer directed three things:
   - The hub pin this ticket hands back gets a ticket of its own, T13.
   - T13 is written on this branch, so it is on `main` before its worktree is cut.
+  - Once the hub published `1.1.0`, T13 is carried out on this branch as well, so this pull
+    request's `full` job can pass.
 
   So this pull request also changes three ticket files:
   - It adds `tickets/T13-hub-pin.md`.
   - It adds T13's row, dependency and graph position to `tickets/README.md`.
   - It adds T13 to `depends_on` and the Context of `tickets/T11-integration.md`.
 
-  All three are outside the Files touched table, so the criterion "Nothing outside the
-  Files touched table changed" no longer holds as written. No file under `template/`,
-  `tests/` or `.github/` changed for T13.
+  T13's own edits are in a commit of their own: `copier.yml`,
+  `template/package.json.jinja`, `tests/test_render.py`, `tickets/CONVENTIONS.md` and
+  `CHANGELOG.md`.
+
+  All of these are outside the Files touched table, so the criterion "Nothing outside the
+  Files touched table changed" no longer holds as written. T13 left
+  `.github/workflows/ci.yml` and the three new test modules unchanged.
 - **Questionnaire.** Every refusal raised `ValueError` with the step 3 prefix, so no
   `match=` changed.
 - **Inventory docstring.** It also names `tests/test_update.py` as a reader, because that
@@ -969,6 +982,9 @@ SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
     `storybook-test` fail for the same reason.
   - The remedy T05 names still applies: a hub release carrying `product`, with
     `hub_package_version` and the `package.json.jinja` pin moved to it. T13 carries it.
+  - **Resolved after review of the pull request.** The hub published `1.1.0`, tagged
+    `v1.1.0` at `ca0ca0a`. T13 moved the pin on this branch, and the render's whole gate
+    now passes.
 - **After `just initialize`.** No modified file. T05's `M tests/platformSpecs.test.ts` is
   gone since T06's reformat merged.
 - **CONVENTIONS.md §4.** No rendered path is missing from it.
@@ -1074,6 +1090,11 @@ SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
    `test_render_passes_its_own_gate` took 26.60 s and 31.27 s. That covers `initialize`
    and the first three recipes only, because the gate stops at `frontend-static`. The
    whole gate's time is unmeasured until the `Wordmark` hand-back is resolved.
+
+   It was measured after review, once T13 had moved the pin. On the same warm machine,
+   `test_render_passes_its_own_gate` took 45.37 s: `initialize`, all eleven recipes and
+   `check-clean`. `just test-full` took 93 s in all. A cold CI runner will be slower, and
+   this pull request's next `full` run gives that figure.
 
 ## Open points
 
