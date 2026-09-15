@@ -88,6 +88,13 @@ WORKFLOWS = (
     ".github/workflows/chromatic.yml",
     ".github/workflows/pages.yml",
 )
+# The one line through which each workflow calls its shared counterpart: the
+# reusable workflow pinned to a forty-character commit, with the tag as a comment.
+CALLER = re.compile(
+    r"^\s*uses: steven-cutting/biscuit_games_tooling/\.github/workflows/"
+    r"game-(ci|chromatic|pages)\.yml@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)$",
+    re.MULTILINE,
+)
 # scripts/validate_docs.py `LINK`: an inline link that is not an image.
 LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 # One answer per rule the `game_name` and `description` validators hold against
@@ -228,27 +235,19 @@ def test_no_lockfiles_shipped(default_render: Render) -> None:
 
 
 def test_pins_agree(default_render: Render) -> None:
-    node_versions: list[str] = []
-    uv_versions: list[str] = []
-    commands: list[str] = []
+    # The workflows install no toolchain of their own: each calls a shared workflow in
+    # biscuit_games_tooling, whose setup-toolchain action holds the node, npm, uv,
+    # Python and just pins. Its README pairs a changed default with a template release
+    # moving the same pins below; nothing compares the two here.
+    pins: set[tuple[str, str]] = set()
     for name in WORKFLOWS:
-        text = default_render.read(name)
-        node_versions += re.findall(r"^\s*node-version:\s*(.+?)\s*$", text, re.MULTILINE)
-        for job in yaml.safe_load(text)["jobs"].values():
-            for step in job.get("steps", []):
-                if str(step.get("uses", "")).startswith("astral-sh/setup-uv@"):
-                    uv_versions.append(str(step["with"]["version"]))
-                commands += [line.strip() for line in str(step.get("run", "")).splitlines()]
-    assert node_versions
-    assert set(node_versions) == {"'26'"}
-    assert uv_versions
-    assert set(uv_versions) == {"0.11.18"}
-    for tool, pinned in (
-        ("uv tool install rust-just", "uv tool install rust-just==1.51.0"),
-        ("npm install --global npm", "npm install --global npm@11.17.0"),
-        ("uv python install", "uv python install 3.14"),
-    ):
-        assert {command for command in commands if command.startswith(tool)} == {pinned}
+        calls = CALLER.findall(default_render.read(name))
+        assert [workflow for workflow, _, _ in calls] == [
+            name.rpartition("/")[2].removesuffix(".yml")
+        ]
+        pins |= {(sha, tag) for _, sha, tag in calls}
+    # One release of the shared repository, moved in all three at once.
+    assert len(pins) == 1
 
     package = json.loads(default_render.read("package.json"))
     assert package["volta"]["node"].startswith("26.")

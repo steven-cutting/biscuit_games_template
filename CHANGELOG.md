@@ -15,11 +15,33 @@ CI and tickets, reaches no game.
 
 ### Managed
 
+- `.github/workflows/ci.yml`, `.github/workflows/chromatic.yml` and
+  `.github/workflows/pages.yml` become callers of the shared workflows in
+  `steven-cutting/biscuit_games_tooling`, pinned to its `v0.1.0` commit: `ci.yml` calls
+  `game-ci.yml`, `chromatic.yml` calls `game-chromatic.yml` and passes
+  `CHROMATIC_PROJECT_TOKEN`, and `pages.yml` calls `game-pages.yml` with `base_path` read
+  from the event. Triggers, the workflow-level `permissions` and `concurrency` are
+  unchanged, every job runs the same recipes in the same order, and the toolchain setup
+  each job repeated is that repository's `setup-toolchain` action. The calling jobs in
+  `chromatic.yml` and `pages.yml` hold `packages: read` beside the workflow's scopes, which
+  the called jobs narrow as the jobs here did.
+- `docs/reference/quality-gates.md` names the shared workflow and the renamed required
+  checks.
+
 ### Seed
 
 ### Questionnaire
 
 ### Update notes
+
+- A MAJOR release: the required checks are renamed. `frontend`, `documents` and `stories`
+  now report as `ci / frontend`, `ci / documents` and `ci / stories`. After
+  `copier update`, change the branch protection on `main` to the new names, in the
+  repository settings or with `gh api`; until then the old names never report and every
+  pull request waits on them.
+- No file is removed. A game that edited one of the three workflows resolves the markers
+  against the callers; a step it added to a job has no place in a caller and moves to a
+  workflow file of the game's own.
 
 ## [0.1.0] - 2026-09-14
 
