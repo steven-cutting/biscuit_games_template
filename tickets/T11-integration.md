@@ -398,7 +398,7 @@ README) plus two (the lockfiles); `1`.
   uncommitted, so nothing there is staged and `git log` still shows one commit.
 - **A committed copy passed as well.** The same bytes, committed in a scratch
   repository, passed `just initialize` and `just check` with every hook run over the
-  whole tree. Deviations explains why that copy was needed.
+  whole tree. The Deviations section explains why that copy was needed.
 - **No template change.** This branch carries only this ticket file: nothing under
   `template/`, `copier.yml` or `tests/` changed, and no repository setting changed on
   either repository.
@@ -494,6 +494,9 @@ $ git ls-remote --tags origin v0.1.0
 f3636e873cdf84c6606f8315b487d521be490ce0 refs/tags/v0.1.0
 $ git cat-file -t v0.1.0
 tag
+$ git rev-parse v0.1.0 'v0.1.0^{}'
+f3636e873cdf84c6606f8315b487d521be490ce0
+6612b7e470b5b9e41d1086cc58d540404c476fbf
 $ just test -v
 [...]
 tests/test_update.py::test_pristine_update_equals_fresh_render[HEAD~2] PASSED [ 87%]
@@ -507,7 +510,9 @@ SKIPPED [1] tests/test_specs.py:34: set BISCUIT_TEMPLATE_NETWORK=1
 ```
 
 `ls-remote` separates the SHA from the ref name with a tab; it is quoted here with a
-space.
+space. Its `v0.1.0` pattern is matched against the tail of each ref name, so the peeled
+`refs/tags/v0.1.0^{}` line is not printed; `rev-parse` shows the tag object and the
+commit it points at.
 
 Step 4, in `/Users/scutting/projects/tic_tac_toe_beans`:
 
@@ -597,9 +602,10 @@ $ diff /Users/scutting/projects/tic_tac_toe_beans/.copier-answers.yml ai_tmp/tag
 > _src_path: /Users/scutting/.supacode/repos/biscuit_games_template/T11-integration
 ```
 
-So the `gh:` render is byte for byte the local render of `v0.1.0`, 126 files including
-the answers file. Its answers are the `DEFAULT_ANSWERS` that the `full` test renders
-with.
+So 125 of the 126 rendered files are byte for byte the local render of `v0.1.0`. The
+126th, `.copier-answers.yml`, differs only in `_src_path`, the one value CONVENTIONS.md
+§5 sanctions editing: `gh:` in the clone, this worktree's path in the local render. The
+answers are the `DEFAULT_ANSWERS` that the `full` test renders with.
 
 Step 7, in the clone:
 
@@ -743,6 +749,16 @@ $ git status --porcelain --ignored | grep '^!! '
   plus the two lockfiles. That is the figure the Verification section describes.
 - **`test-full` time.** The full test took 44.86 s, because T13's runs had already
   downloaded Chromium, allium and the hook repositories on this machine.
+- **Four corrections, after review of the pull request.**
+  - The comparison with the local render claimed all 126 files byte-identical. It now
+    says 125, and that the answers file differs only in `_src_path`.
+  - The C03 list named only the two settings step 9 names. It now also carries the
+    protection on `main` and private vulnerability reporting, which C03 step 10
+    applies before the first push; both reads of today's state ran after the review.
+  - Step 3 now quotes `git rev-parse` of the tag and its peeled commit, run after the
+    review, because `ls-remote` with a pattern prints no `^{}` line.
+  - Two sentences were reworded for clarity: the pointer to the Deviations section,
+    and the note on Pages for a private repository.
 
 ### Handed back
 
@@ -757,7 +773,9 @@ $ git status --porcelain --ignored | grep '^!! '
 ### What the consumer's first push needs (C03)
 
 The maintainer applies these to `steven-cutting/tic_tac_toe_beans` before its first
-push:
+push. C03 step 10 is the procedure: two decisions, then
+`scripts/bootstrap_repo.sh --apply` for items 1, 3 and 4, then the package grant by
+hand. C03 is still `open`, and that script does not exist yet.
 
 1. **Set the Pages source to GitHub Actions.**
    - Today `gh api repos/steven-cutting/tic_tac_toe_beans/pages` answers
@@ -776,15 +794,30 @@ push:
      103, 161).
    - Until the grant exists, that token cannot read the package and `npm ci` fails with
      `404 Not Found`.
-3. **With both in place,** `frontend`, `documents` and `stories` are expected green on
-   the first push. Those are the three required checks in the rendered
-   `docs/reference/quality-gates.md`, "On `main`".
-4. **The repository is private.** `gh repo view steven-cutting/tic_tac_toe_beans --json
+3. **Protect `main` behind `frontend`, `documents` and `stories`.**
+   - Today `gh api repos/steven-cutting/tic_tac_toe_beans/branches/main/protection`
+     answers `"status":"404"` (Branch not protected).
+   - Those are the three required checks in the rendered
+     `docs/reference/quality-gates.md`, "On `main`".
+   - C03 puts the protection on before the first push on purpose. Administrators are not
+     bound, so the owner's direct push to `main` still goes through, and every later
+     change arrives through a pull request behind the three checks.
+4. **Switch on private vulnerability reporting where GitHub offers it.**
+   - Today
+     `gh api repos/steven-cutting/tic_tac_toe_beans/private-vulnerability-reporting`
+     answers `"status":"404"` (Not Found). C03 reads that as not available, because
+     GitHub offers the form on public repositories.
+   - While the repository is private, the rendered `SECURITY.md` (lines 9-10) sends
+     reports to the owner directly, and that fallback needs no setting.
+5. **With items 1 and 2 in place,** `frontend`, `documents` and `stories` are expected
+   green on the first push.
+6. **The repository is private.** `gh repo view steven-cutting/tic_tac_toe_beans --json
    isPrivate,visibility` prints `{"isPrivate":true,"visibility":"PRIVATE"}`.
-   - Pages from a private repository needs a paid GitHub plan, so the first `pages.yml`
-     deploy may fail for that reason alone.
+   - A Pages site for a private repository needs a paid GitHub plan, so the first
+     `pages.yml` deploy may fail for that reason alone.
    - Making the repository public, or accepting no deployment for now, is the
-     maintainer's decision.
+     maintainer's decision. It is the first of C03's two decisions; the second is
+     whether a Chromatic project exists for the game, and so whether its token goes in.
 
 ### Open points settled
 
