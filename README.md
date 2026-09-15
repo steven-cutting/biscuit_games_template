@@ -126,7 +126,7 @@ in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Bootstrap a repository
 
-A rendered game's repository, and this one, needs five things no file can carry:
+A rendered game's repository needs five things no file can carry:
 
 1. The Pages source set to GitHub Actions. Until it is, `pages.yml` builds its artefact
    and the deploy job fails with `Failed to create deployment (status: 404)`.
@@ -142,8 +142,10 @@ A rendered game's repository, and this one, needs five things no file can carry:
    repository; no REST endpoint for it is known. Without it every workflow that installs
    the package fails.
 
-This repository differs in two places: it publishes no Pages site, and its required checks
-are `fast` and `full` (see "Bootstrap of this repository" below).
+This repository needs three of the five: step 2, with `fast` and `full` as the checks, in
+the order "Bootstrap of this repository" below gives; step 4; and step 5, because its
+`full` job installs the package. It publishes no Pages site and has no Chromatic workflow,
+so steps 1 and 3 do not apply.
 
 These steps are done by hand until
 [`tickets/C03-repository-bootstrap.md`](tickets/C03-repository-bootstrap.md) lands and its
@@ -181,9 +183,9 @@ What `just test` proves, module by module:
 
 To add a managed file:
 
-1. Create it under `template/`, with the `.jinja` suffix only if it substitutes an answer,
-   and never for a `.svelte`, `.test.ts`, `.stories.svelte`, workflow `.yml` or `.py` file
-   (`tickets/CONVENTIONS.md` §6).
+1. Create it under `template/`, with the `.jinja` suffix only if it substitutes an answer
+   or a `_copier_*` value, and never for a `.svelte`, `.test.ts`, `.stories.svelte`,
+   workflow `.yml` or `.py` file (`tickets/CONVENTIONS.md` §6).
 2. Add its rendered path to `MANAGED` in `tests/inventory.py`, and to `GAME_EDITED` if a
    game is expected to edit it.
 3. A handbook page also gets an entry in `template/docs/manifest.yml`, inside the upper

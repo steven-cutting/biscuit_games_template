@@ -637,6 +637,36 @@ $ sed -n '/## \[Unreleased\]/,/## \[0.1.0\]/p' CHANGELOG.md
      merged tree. `tests/test_render.py` covers more than the ticket names: the tool pins,
      stable links from managed pages, and the Markdown refusals.
    - The root `docs/reports/` is named as a code span, not linked.
+8. **Five corrections, and one claim checked, after review of the pull request.**
+   - `AGENTS.md`: the class bullet said every rendered path is in one of three classes. It
+     now sorts every path but `.copier-answers.yml` into managed or seed, and calls
+     `GAME_EDITED` the managed subset, as `tests/inventory.py` and the README do. The
+     changelog bullet now scopes "every change" to `copier.yml` and `template/`, the
+     changes a render receives. Step 4's text carried both. `wc -w` gives 197.
+   - `CHANGELOG.md`, the header: it now says only changes to `copier.yml` and `template/`
+     are recorded, which is why this pull request adds nothing under Unreleased;
+     `git diff --stat v0.1.0 HEAD -- template copier.yml` prints nothing. Managed now
+     reads "files an update merges into every game that keeps them", because a managed
+     file a game deleted stays deleted (CONVENTIONS.md §5). Step 3's text carried the old
+     gloss.
+   - `CHANGELOG.md`, the `game_name` line: it now also lists the trailing `。`, `，`, `；`,
+     `：` and `！` that `copier.yml` line 140 refuses.
+   - `README.md`, `## Bootstrap a repository`: the list no longer claims to cover this
+     repository. The sentence deviation 7 describes is replaced: this repository needs
+     steps 2, 4 and 5, and steps 1 and 3 do not apply, because its one workflow is
+     `ci.yml`. It no longer calls `fast` and `full` required checks, which
+     `## Bootstrap of this repository` says neither is yet.
+   - `README.md`, adding a managed file: `.jinja` is for a file that substitutes an answer
+     or a `_copier_*` value, as CONVENTIONS.md §6 rule 1 says. Step 2's section 6 named
+     answers only.
+   - Checked and left: the `[0.1.0]` link reference to `releases/tag/v0.1.0`. No GitHub
+     Release is published, and that URL still answers 200; `releases/tag/v9.9.9` answers
+     404.
+   - Re-run after the corrections: `just check` printed every hook line `Passed`,
+     `Success: no issues found in 10 source files` and
+     `[...] 45 passed, 3 skipped, 31 warnings in 58.61s [...]`. The seed-list script
+     printed `README seed list equals _skip_if_exists (14 entries)`, and the grep for
+     links into `template/` matched nothing and printed `exit 1`.
 
 ### Handed back
 

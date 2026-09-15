@@ -5,9 +5,11 @@ All notable changes to this template are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as
 [the README](README.md) defines MAJOR, MINOR and PATCH for a template. Every release
-uses the same four headings: Managed (files an update merges into every game), Seed
-(files a game gets once, on copy), Questionnaire (questions and computed values) and
-Update notes (what a game must do beyond resolving markers).
+uses the same four headings: Managed (files an update merges into every game that keeps
+them), Seed (files a game gets once, on copy), Questionnaire (questions and computed
+values) and Update notes (what a game must do beyond resolving markers). Only changes to
+`copier.yml` and `template/` are recorded: the rest of this repository, its README, tests,
+CI and tickets, reaches no game.
 
 ## [Unreleased]
 
@@ -89,7 +91,7 @@ render under these 14 paths:
 - `game_name`, with no default: 2 to 40 characters including a letter. Refuses control
   characters, braces, surrounding whitespace, a leading `#`, `>`, `-`, `+`, `*`, `_`, `~`,
   backtick or list number, `<`, square brackets, a web or email address, and a trailing
-  `#`, `.`, `,`, `;`, `:` or `!`.
+  `#`, `.`, `,`, `;`, `:`, `!`, `。`, `，`, `；`, `：` or `！`.
 - `game_slug`, defaulting to `game_name` lowercased, each run of other characters made one
   underscore and leading digits dropped: lowercase letters and digits in words joined by
   single underscores, starting with a letter.
