@@ -2,7 +2,7 @@
 id: T11
 title: Integration: first green render, tag v0.1.0, render tic_tac_toe_beans
 status: open
-depends_on: [T10]
+depends_on: [T10, T13]
 parallel_with: []
 branch: ticket/t11-integration
 estimated_size: M
@@ -18,8 +18,10 @@ puts the first tag on that commit, and renders the first real consumer,
 `steven-cutting/tic_tac_toe_beans`, from the tag. CONVENTIONS.md §1 decision 4 names
 that repository as the end-to-end verification.
 
-Order: T00 and the nine lanes T01 to T09 have merged, then T10 (which made
-`just test-full` green locally, added `tests/test_full.py` and the `full` CI job). T12
+Order: T00 and the nine lanes T01 to T09 have merged, then T10 (which added
+`tests/test_full.py` and the `full` CI job), then T13 (which moves the hub pin to the
+release whose `Wordmark` takes `product`: that `Wordmark` error was the one failure T10
+recorded in a render's gate). T12
 (template `README.md`, `CHANGELOG.md`, `AGENTS.md`) waits for this ticket, and so does
 C07 (Poodl adopts the template), which needs `v0.1.0` to exist. T12 writes the
 `CHANGELOG.md` entry for `v0.1.0` after the tag; that file is a template-repository

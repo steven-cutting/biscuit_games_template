@@ -47,3 +47,50 @@ jobs:
         env:
           # The one download in the fast suite: the pinned allium, checksummed.
           BISCUIT_TEMPLATE_NETWORK: '1'
+
+  full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      # The render installs @steven-cutting/biscuit-games with the run's own
+      # token. That works only once the package grants this repository read
+      # access, a per-package setting; see README "Bootstrap of this repository".
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '26'
+          # No `cache: npm`: the lockfile it would key on is created inside the
+          # render, in a temporary directory, and setup-node fails when the
+          # dependency path it is given does not exist.
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@steven-cutting'
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: 0.11.18
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv python install 3.14
+      - run: uv tool install rust-just==1.51.0
+      - run: npm install --global npm@11.17.0
+      # Restored before the render's install, as Poodl's stories job does.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          # Keyed on the shipped manifest, because the lockfile that would
+          # normally key this does not exist until `just initialize` runs.
+          key: ${{ runner.os }}-playwright-${{ hashFiles('template/package.json.jinja') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      - run: just sync
+      - run: just test-full
+        env:
+          # On the step that installs, never on the job. setup-node wrote the
+          # registry into a user config under RUNNER_TEMP; the render's npm
+          # inherits it and reads the token from here.
+          NODE_AUTH_TOKEN: ${{ github.token }}

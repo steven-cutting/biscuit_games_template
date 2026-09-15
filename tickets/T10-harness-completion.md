@@ -1,7 +1,7 @@
 ---
 id: T10
 title: Harness completion: update, questionnaire and full-mode tests, the full CI job, the final inventory
-status: open
+status: done
 depends_on: [T01, T02, T03, T04, T05, T06, T07, T08, T09]
 parallel_with: []
 branch: ticket/t10-harness-completion
@@ -719,22 +719,383 @@ Expected: nothing untracked or modified after the commit; no tag (T11 makes the 
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### Outcome
 
-- What was verified and how: the output of every Verification command, quoted,
-  including the elapsed time of `just test-full` and the last line of the render's
-  `just check`.
-- What deviated from the ticket and why: T00 names or types substituted in step 1; any
-  questionnaire value whose refusal message differed and how `match=` was adapted; any
-  change to the test code above that a lint or type rule forced.
-- What was handed back to another ticket: render defects `just test-full` exposed (the
-  file, the gate, the owning lane per CONVENTIONS.md §4); any modified-file line after
-  `just initialize`; any rendered path CONVENTIONS.md §4 does not list; anything the
-  new tests needed in a T00 file.
-- Which open points were settled, with each command's output; which are carried
-  forward, and to whom.
-- The `full` job's first run in CI, if a pull request was opened: which step failed and
-  with what status from `npm.pkg.github.com`, so C03 can confirm the grant fixes it.
+- `tests/test_questionnaire.py`, `tests/test_update.py` and `tests/test_full.py` exist, the
+  `full` job follows the unchanged `fast` job, and `tests/inventory.py` needed only its
+  docstring: the merged tree was already classified exactly.
+- `just check` is green on the branch: 44 passed, 4 skipped.
+- `tests/test_update.py` needed one change beyond ruff's layout. The step 4 code matched a
+  conflict marker anywhere in a file, and two shipped pages quote both markers in prose
+  (Deviations, below).
+- On this ticket's own changes, `test_render_passes_its_own_gate` failed, for the reason
+  T00, T01 and T05 each handed back:
+  - In the render, `just initialize` exits 0 and leaves only the two lockfiles, and
+    `lock-check` and `lint` pass.
+  - `frontend-static` then stopped at svelte-check on
+    `src/lib/components/Lockup.svelte:20:11`, because the published hub `Wordmark` took no
+    `product`.
+
+  That fix is a Non-goal here, and it was handed back.
+- After review of the pull request, the hub published `1.1.0`, and T13 moved the pin to it
+  on this branch. With T13's commit, `test_render_passes_its_own_gate` passes and the whole
+  `just test-full` run is green (hand-back notes of `tickets/T13-hub-pin.md`). So on this
+  pull request those two criteria are met, through T13 rather than through this ticket's
+  own files. Every other criterion is met, except the Files touched criterion, which the
+  T13 bullet under Deviations explains.
+- The status is `done` nonetheless, as step 8 directs. `tickets/README.md` "Definition of
+  done" asks for every criterion, so this is the maintainer's call at merge. T01 closed
+  `done` with its render criteria unmet by the same svelte-check error, and holding T10
+  open would stall T11, which depends on it and on T13.
+- This ticket does not make `full` a required check and changed no repository setting;
+  `fast` stays the one required check. On this ticket's pull request, `fast` passed.
+  `full` did not fail at `npm ci`, as this ticket expected: the render installed the hub
+  package with the run's own token. It failed at the render's `frontend-static`, on the
+  same `Wordmark` error as the local run (open point 5).
+
+### What was verified, and how
+
+Output is quoted; each elision is marked with square brackets. The work was uncommitted
+throughout, so the warnings counted below are copier's `DirtyLocalWarning`.
+
+The baseline, before anything was written:
+
+```text
+$ just sync
+uv sync --frozen
+Checked 32 packages in 5ms
+$ just check
+[18 hook lines, every one ending Passed; mypy: Success: no issues found in 7 source files]
+======================== 27 passed, 2 skipped in 11.48s ========================
+```
+
+Step 2, the inventory against a render of the merged tree:
+
+```text
+$ rm -rf ai_tmp/render && just render
+[...]
+Rendered into ai_tmp/render
+$ uv run --frozen python - <<'EOF'
+[step 2's script, plus one line printing the four sizes]
+rendered but unclassified: []
+classified but not rendered: []
+in both sets: []
+game-edited outside managed: []
+counts: 126 101 24 14
+```
+
+That is 126 rendered paths: 101 managed, 24 seed and `.copier-answers.yml`. `GAME_EDITED`
+holds the fourteen `M†` paths, and the module held no placeholder.
+
+Steps 3 and 4, after the change under Deviations:
+
+```text
+$ just test tests/test_update.py tests/test_questionnaire.py -v -p no:cacheprovider
+tests/test_update.py::test_pristine_update_equals_fresh_render[HEAD~2] PASSED [  5%]
+tests/test_update.py::test_pristine_update_equals_fresh_render[latest-tag] SKIPPED [ 11%]
+tests/test_update.py::test_update_keeps_game_work PASSED                 [ 16%]
+[the fourteen test_bad_*_is_refused cases, each PASSED]
+tests/test_questionnaire.py::test_computed_defaults PASSED               [100%]
+SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
+================= 17 passed, 1 skipped, 15 warnings in 34.60s ==================
+```
+
+Step 6. The `full` job was taken from this ticket's yaml fence by a script and appended
+after one blank line, so it is that text byte for byte:
+
+```text
+$ uv run --frozen prek run --all-files actionlint check-yaml
+check yaml...............................................................Passed
+Lint GitHub Actions workflow files.......................................Passed
+$ grep -n '^  full:\|^  fast:\|fetch-depth: 0' .github/workflows/ci.yml
+25:  fast:
+34:          fetch-depth: 0
+51:  full:
+64:          fetch-depth: 0
+$ git diff main -- .github/workflows/ci.yml | grep -c '^-[^-]'
+0
+```
+
+Step 5, run twice: once before the marker change and once after it, with the same
+`test_full` result. The second run:
+
+```text
+$ grep -c '^//npm.pkg.github.com/:_authToken=' ~/.npmrc
+1
+$ just test-full -v -s --durations=5
+[...]
+tests/test_full.py::test_render_passes_its_own_gate sh scripts/initialize.sh
+[uv lock; uv sync; npm install --package-lock-only; npm ci; playwright install chromium;
+ allium 3.6.1; ruff; npm run lint:fix]
+prek installed at `.git/hooks/pre-commit`
+
+Ready. Next: just check.
+Nothing has been staged, committed, tagged, or pushed.
+uv run --frozen python scripts/run_project_check.py run
+==> just lock-check
+==> just lint
+==> just frontend-static
+[...] ERROR "src/lib/components/Lockup.svelte" 20:11 "Type 'string' is not assignable to type 'never'."
+[...] COMPLETED 806 FILES 1 ERRORS 0 WARNINGS 1 FILES_WITH_PROBLEMS
+error: recipe `frontend-static` failed on line 93 with exit code 1
+error: recipe `check` failed on line 155 with exit code 1
+FAILED
+[...]
+tests/test_specs.py::test_seed_module_is_clean PASSED
+tests/test_specs.py::test_gate_refuses_an_empty_specs_directory PASSED
+[...]
+26.60s call     tests/test_full.py::test_render_passes_its_own_gate
+12.97s call     tests/test_update.py::test_pristine_update_equals_fresh_render[HEAD~2]
+12.68s call     tests/test_update.py::test_update_keeps_game_work
+[...]
+FAILED tests/test_full.py::test_render_passes_its_own_gate - AssertionError: ...
+[...] 1 failed, 46 passed, 1 skipped, 31 warnings in 77.99s (0:01:17) [...]
+```
+
+The first run printed each recipe in full:
+
+- `lock-check`: `npm ci --ignore-scripts --dry-run` reported "up to date".
+- `lint`: 23 hook lines, every one ending Passed. ESLint and Prettier, Documentation
+  contract, Agent instruction contract, Specification diagnostics and Specification
+  analysis are among them.
+- `frontend-static`: `npm run lint` printed "All matched files use Prettier code style!"
+  before `npm run check` failed as above.
+
+The failing assertion is `tests/test_full.py:40`, `assert just(game.path, "check") == 0`.
+The two assertions before it held. `just initialize` exited 0, and `git status
+--porcelain` was exactly the two lockfiles, so no shipped file was rewritten. The render's
+closing line, "All checks passed and the worktree is unchanged.", was not reached.
+`just test-full` took 78 s in all; the first run took 77 s, 31.27 s of it in `test_full`.
+
+`just check` on the final code, before these notes were added:
+
+```text
+$ just check
+uv lock --check
+Resolved 33 packages in 3ms
+uv run --frozen prek run --all-files
+[18 hook lines, every one ending Passed, Lint GitHub Actions workflow files included]
+uv run --frozen mypy
+Success: no issues found in 10 source files
+uv run --frozen pytest "$@"
+[...]
+SKIPPED [1] tests/test_full.py:30: set BISCUIT_TEMPLATE_FULL=1
+SKIPPED [1] tests/test_specs.py:26: set BISCUIT_TEMPLATE_NETWORK=1
+SKIPPED [1] tests/test_specs.py:34: set BISCUIT_TEMPLATE_NETWORK=1
+SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
+================= 44 passed, 4 skipped, 31 warnings in 49.32s ==================
+$ git tag --list 'v*'
+```
+
+The tag listing printed nothing.
+
+Then again after the commit, on the clean tree. There `template_clone` skips the draft
+commit and clones `HEAD` directly, the path both CI jobs take, and no `DirtyLocalWarning`
+is raised:
+
+```text
+$ git status --porcelain
+$ just check
+[18 hook lines, every one ending Passed; mypy: Success: no issues found in 10 source files]
+[...]
+SKIPPED [1] tests/test_full.py:30: set BISCUIT_TEMPLATE_FULL=1
+SKIPPED [1] tests/test_specs.py:26: set BISCUIT_TEMPLATE_NETWORK=1
+SKIPPED [1] tests/test_specs.py:34: set BISCUIT_TEMPLATE_NETWORK=1
+SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
+======================== 44 passed, 4 skipped in 46.06s ========================
+```
+
+`git status --porcelain` printed nothing before that run and nothing after it.
+
+### Deviations, and why
+
+- **Branch.** The work is on `T10-harness-completion`, the Supacode worktree's branch, as
+  every lane's was, not on `ticket/t10-harness-completion`.
+- **No substitutions in step 1.** Every name and import exists as the ticket spells it,
+  and the inventory sets are `str`. `pyproject.toml` already waives `S404`, `S603` and
+  `S607` for `tests/**`, so `import subprocess` needed nothing.
+- **Formatting was scoped to `tests/`.** It ran as
+  `uv run --frozen ruff check --fix-only tests/ && uv run --frozen ruff format tests/`,
+  not `just format`. T00 handed back that ruff formats the Python fences in Markdown, and
+  `ruff format --check .` reported two files that would be rewritten: this ticket and T00's.
+- **Layout ruff forced.** `test_update.py` has three reflows: the messages of the two
+  asserts in `assert_template_change` and in the managed-files loop, and the
+  `fresh = tree(...)` call. The other two modules were already format-clean, and `ruff
+  check` passed all three as written.
+- **Conflict markers are matched as whole lines.** As step 4 wrote it, `assert_no_conflicts`
+  failed both round trips with `docs/decisions/0009-rendered-from-the-template.md carries
+  markers`. That seed page quotes both markers inside a sentence (its lines 38-39), and
+  so does `docs/how-to/update-from-template.md` (line 79 of its `.md.jinja`). Every render
+  carries both pages, so the substring test could never pass on the merged tree.
+  - Copier's own conflict scan (`copier/_main.py` 1640-1650) compares `line.rstrip()`
+    with the two marker lines, and the test now does the same.
+  - A grep of `template/` finds no line that is a bare marker.
+  - A negative control, run once in `ai_tmp/`: a file holding both marker lines is still
+    refused, and a file quoting them in prose is accepted.
+  - The step 4 fence above still shows the substring form; correct it when this ticket is
+    next edited on `main`.
+- **One quoted summary line, after review of the pull request.** The last line of the
+  `just test-full` run began with exactly seven `=` and a space, which `git diff --check`
+  reports as a leftover conflict marker. Its padding is now elided as `[...]`; the counts
+  and times are as printed. The gate never refused it: prek 0.4.12's
+  `check-merge-conflict` passes that line even during a merge and flags only a bare
+  `=======` line.
+- **T13, after review of the pull request.** The maintainer directed three things:
+  - The hub pin this ticket hands back gets a ticket of its own, T13.
+  - T13 is written on this branch, so it is on `main` before its worktree is cut.
+  - Once the hub published `1.1.0`, T13 is carried out on this branch as well, so this pull
+    request's `full` job can pass.
+
+  So this pull request also changes three ticket files:
+  - It adds `tickets/T13-hub-pin.md`.
+  - It adds T13's row, dependency and graph position to `tickets/README.md`.
+  - It adds T13 to `depends_on` and the Context of `tickets/T11-integration.md`.
+
+  T13's own edits are in a commit of their own: `copier.yml`,
+  `template/package.json.jinja`, `tests/test_render.py`, `tickets/CONVENTIONS.md` and
+  `CHANGELOG.md`.
+
+  All of these are outside the Files touched table, so the criterion "Nothing outside the
+  Files touched table changed" no longer holds as written. T13 left
+  `.github/workflows/ci.yml` and the three new test modules unchanged.
+- **Questionnaire.** Every refusal raised `ValueError` with the step 3 prefix, so no
+  `match=` changed.
+- **Inventory docstring.** It also names `tests/test_update.py` as a reader, because that
+  module now imports all three sets.
+- **Commands.**
+  - `-p no:cacheprovider` was added to the focused pytest runs, because they ran beside
+    a `just test-full` run.
+  - `-s --durations=5` was added to `just test-full`, for the timings.
+  - Logs went to `ai_tmp/`.
+  - The Linux-only `storybook-browsers-deps` did not apply on macOS.
+
+### Handed back
+
+- **CONVENTIONS.md §0 and the hub (maintainer).** This is the fourth report, after T00's,
+  T01's and T05's. `npm view @steven-cutting/biscuit-games versions` against GitHub
+  Packages still prints only `1.0.0`, whose `Wordmark` takes no `product`.
+  - svelte-check fails at `Lockup.svelte:20:11`, and the render's gate stops at
+    `frontend-static`.
+  - The recipes after it did not run here: `frontend-coverage`, `frontend-build`,
+    `storybook-build`, `storybook-test`, `check-docs`, `check-agents`, `check-specs`,
+    `analyse-specs`. T05 reports that `frontend-unit`, `frontend-coverage` and
+    `storybook-test` fail for the same reason.
+  - The remedy T05 names still applies: a hub release carrying `product`, with
+    `hub_package_version` and the `package.json.jinja` pin moved to it. T13 carries it.
+  - **Resolved after review of the pull request.** The hub published `1.1.0`, tagged
+    `v1.1.0` at `ca0ca0a`. T13 moved the pin on this branch, and the render's whole gate
+    now passes.
+- **After `just initialize`.** No modified file. T05's `M tests/platformSpecs.test.ts` is
+  gone since T06's reformat merged.
+- **CONVENTIONS.md §4.** No rendered path is missing from it.
+- **T00 follow-up on `main`, wording only.** The `fast` job's checkout comment in
+  `.github/workflows/ci.yml` says the update round trip renders `HEAD~1`; it renders
+  `HEAD~2`. `tests/conftest.py`'s `git_render` docstring predates the synthetic commit in
+  the same way. This ticket left both alone: `fast` must stay byte-identical, and
+  `conftest.py` is a Non-goal. No new test needed a change in a T00 file.
+- **C03, before `full` is required (after review of the pull request).**
+  `NODE_AUTH_TOKEN` is set on the whole `just test-full` step, because the render and its
+  `npm ci` run inside the test. So pytest, the render's install scripts and every recipe
+  of its gate can read it. It is the run's own token, read-only (`contents` and
+  `packages`), it expires when the job ends, and the hub package is public. Narrowing it
+  further needs the install moved out of the test, or a change to T02's
+  `template/scripts/initialize.sh`.
+- **Noise, not a defect.** Inside the render, uv prints ``warning: `VIRTUAL_ENV=[...]` does
+  not match the project environment path `.venv` and will be ignored``. This is because
+  the harness runs under the template's `uv run`; the render's recipes use their own
+  `.venv`.
+
+### Open points settled
+
+1. **Cloning a linked worktree: holds.** Run before the first `just test`:
+
+   ```text
+   $ git rev-parse HEAD
+   d3e9fab3ad23f5cc9e376f6c061bc988286e9870
+   $ git -C ai_tmp/clone-check rev-parse HEAD && git -C ai_tmp/clone-check branch --show-current
+   d3e9fab3ad23f5cc9e376f6c061bc988286e9870
+   T10-harness-completion
+   ```
+
+   The branch is the worktree's (see Deviations). In `tests/test_update.py`'s first run the
+   clone, the draft commit, the synthetic commit and every render worked; both round trips
+   then failed only at the marker check above. After that change they pass.
+2. **dunamai's pattern: holds.**
+
+   ```text
+   $ uv run --frozen python -c 'import re, dunamai; p = dunamai.Pattern.DefaultUnprefixed.regex(); print(p); print([bool(re.match(p, t)) for t in ("v0.1.0", "0.1.0", "v0.2.0rc1")])'
+   (?x)                                                        (?# ignore whitespace)
+       ^v?((?P<epoch>\d+)!)?(?P<base>\d+(\.\d+)*)                   (?# v1.2.3 or v1!2000.1.2)
+       ([-._]?((?P<stage>[a-zA-Z]+)[-._]?(?P<revision>\d+)?))?     (?# b0)
+       (\+(?P<tagged_metadata>.+))?$                               (?# +linux)
+   [True, True, True]
+   ```
+
+3. **The questionnaire's `ValueError`: holds.** All fourteen refusals raise `ValueError`
+   matching `Validation error for question '<name>'`, and `test_computed_defaults` passes
+   (15 passed, above).
+4. **The clone stays clean under a dirty worktree: holds.**
+
+   ```text
+   $ git status --porcelain
+    M .github/workflows/ci.yml
+    M tests/inventory.py
+    M tickets/T10-harness-completion.md
+   [...]
+   $ just test tests/test_update.py -v -W error::copier.errors.DirtyLocalWarning -p no:cacheprovider
+   tests/test_update.py::test_pristine_update_equals_fresh_render[HEAD~2] PASSED [ 33%]
+   tests/test_update.py::test_pristine_update_equals_fresh_render[latest-tag] SKIPPED [ 66%]
+   tests/test_update.py::test_update_keeps_game_work PASSED                 [100%]
+   SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
+   ======================== 2 passed, 1 skipped in 24.13s =========================
+   ```
+
+5. **`full` in CI: the expected `npm ci` failure did not happen.** The maintainer
+   authorised the push and the pull request after the notes above were written. The
+   first run is `34808280490`, on commit `d1ab7de`:
+
+   ```text
+   fast  pass  1m35s  [18 hooks Passed; Success: no issues found in 10 source files;
+                       46 passed, 2 skipped in 12.40s]
+   full  fail  3m4s   step "Run just test-full"
+   ```
+
+   Inside `full`, with `NODE_AUTH_TOKEN` set to the run's `github.token` on that step:
+   - The render's `npm install --package-lock-only` printed `up to date in 19s`, and
+     `npm ci` printed `added 375 packages in 8s`. There was no 401 or 403 from
+     `npm.pkg.github.com`.
+   - Chromium and allium downloaded, and `just initialize` printed
+     `Ready. Next: just check.`
+   - `just storybook-browsers-deps` ran `playwright install-deps chromium` through the
+     runner's passwordless sudo.
+   - `lock-check` passed, and so did all 23 `lint` hooks.
+   - `frontend-static` failed:
+
+   ```text
+   [render]/src/lib/components/Lockup.svelte:20:11
+   Error: Type 'string' is not assignable to type 'never'. (ts)
+   <Wordmark product={GAME_NAME} />
+   svelte-check found 1 error and 0 warnings in 1 file
+   error: recipe `frontend-static` failed on line 93 with exit code 1
+   [...]
+   FAILED tests/test_full.py::test_render_passes_its_own_gate - AssertionError: assert 1 == 0
+   ============= 1 failed, 46 passed, 1 skipped in 163.53s (0:02:43) ==============
+   ```
+
+   For C03: `github.token` can already read the hub package from this repository's
+   workflows. C03 should confirm whether that is because the grant is already applied or
+   because none is needed. Either way, the `Wordmark` hand-back alone is what keeps `full`
+   red, and C03's order for making `full` required should read it that way.
+6. **The render gate's elapsed time: carried to T11 and C03.** On a warm machine,
+   `test_render_passes_its_own_gate` took 26.60 s and 31.27 s. That covers `initialize`
+   and the first three recipes only, because the gate stops at `frontend-static`. The
+   whole gate's time is unmeasured until the `Wordmark` hand-back is resolved.
+
+   It was measured after review, once T13 had moved the pin. On the same warm machine,
+   `test_render_passes_its_own_gate` took 45.37 s: `initialize`, all eleven recipes and
+   `check-clean`. `just test-full` took 93 s in all. On CI, run `34931522393` on `32ca849`,
+   the `full` job took 3m00s, and its `just test-full` step's pytest reported
+   `47 passed, 1 skipped in 156.89s (0:02:36)`.
 
 ## Open points
 

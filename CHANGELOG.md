@@ -21,6 +21,10 @@ are tags on `main`, and what each level means for a rendered game is stated in
   the platform page, the first-change tutorial, six how-to pages carried from Poodl, and
   a new `docs/how-to/update-from-template.md` stating the seed list, the append
   convention and the update procedure.
+- `package.json` pins `@steven-cutting/biscuit-games` at `1.1.0`, the first release
+  whose `Wordmark` takes `product`. Before it, every render's `svelte-check` failed
+  at `src/lib/components/Lockup.svelte`, and the lockup read "biscuit games" without
+  the game's name.
 
 ### Seed
 
