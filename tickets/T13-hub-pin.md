@@ -239,6 +239,11 @@ Expected:
 - `just test-full` is green, and `test_render_passes_its_own_gate` passed. The render's
   whole gate ran for the first time: `just initialize`, all eleven recipes, then
   `check-clean`.
+- On pull request 12, CI run `34931522393` on `32ca849` passed both jobs:
+  - `fast` in 1m18s, with pytest reporting `46 passed, 2 skipped in 10.29s`.
+  - `full` in 3m00s, with the `just test-full` step's pytest reporting
+    `47 passed, 1 skipped in 156.89s (0:02:36)`. The one skip is
+    `test_update.py`'s latest-tag case, so `test_render_passes_its_own_gate` passed.
 - No tag was created and no repository setting was changed.
 
 ### What was verified, and how

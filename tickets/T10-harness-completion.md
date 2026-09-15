@@ -1093,8 +1093,9 @@ SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
 
    It was measured after review, once T13 had moved the pin. On the same warm machine,
    `test_render_passes_its_own_gate` took 45.37 s: `initialize`, all eleven recipes and
-   `check-clean`. `just test-full` took 93 s in all. A cold CI runner will be slower, and
-   this pull request's next `full` run gives that figure.
+   `check-clean`. `just test-full` took 93 s in all. On CI, run `34931522393` on `32ca849`,
+   the `full` job took 3m00s, and its `just test-full` step's pytest reported
+   `47 passed, 1 skipped in 156.89s (0:02:36)`.
 
 ## Open points
 
