@@ -735,6 +735,10 @@ Expected: nothing untracked or modified after the commit; no tag (T11 makes the 
   `product`. That is a Non-goal here and is handed back. So two acceptance criteria are
   not met by this ticket: "`test_render_passes_its_own_gate` passed" and "the whole
   `just test-full` run is green". Every other criterion is met.
+- The status is `done` nonetheless, as step 8 directs. `tickets/README.md` "Definition of
+  done" asks for every criterion, so this is the maintainer's call at merge. T01 closed
+  `done` with its render criteria unmet by the same svelte-check error, and holding T10
+  open would stall T11, which depends on it and collects the hub release.
 - This ticket does not make `full` a required check and changed no repository setting;
   `fast` stays the one required check. On this ticket's pull request, `fast` passed.
   `full` did not fail at `npm ci`, as this ticket expected: the render installed the hub
@@ -837,7 +841,7 @@ tests/test_specs.py::test_gate_refuses_an_empty_specs_directory PASSED
 12.68s call     tests/test_update.py::test_update_keeps_game_work
 [...]
 FAILED tests/test_full.py::test_render_passes_its_own_gate - AssertionError: ...
-======= 1 failed, 46 passed, 1 skipped, 31 warnings in 77.99s (0:01:17) ========
+[...] 1 failed, 46 passed, 1 skipped, 31 warnings in 77.99s (0:01:17) [...]
 ```
 
 The first run printed each recipe in full:
@@ -922,6 +926,12 @@ SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
     refused, and a file quoting them in prose is accepted.
   - The step 4 fence above still shows the substring form; correct it when this ticket is
     next edited on `main`.
+- **One quoted summary line, after review of the pull request.** The last line of the
+  `just test-full` run began with exactly seven `=` and a space, which `git diff --check`
+  reports as a leftover conflict marker. Its padding is now elided as `[...]`; the counts
+  and times are as printed. The gate never refused it: prek 0.4.12's
+  `check-merge-conflict` passes that line even during a merge and flags only a bare
+  `=======` line.
 - **Questionnaire.** Every refusal raised `ValueError` with the step 3 prefix, so no
   `match=` changed.
 - **Inventory docstring.** It also names `tests/test_update.py` as a reader, because that
@@ -954,6 +964,13 @@ SKIPPED [1] tests/test_update.py:84: no v* tag yet; T11 makes the first
   `HEAD~2`. `tests/conftest.py`'s `git_render` docstring predates the synthetic commit in
   the same way. This ticket left both alone: `fast` must stay byte-identical, and
   `conftest.py` is a Non-goal. No new test needed a change in a T00 file.
+- **C03, before `full` is required (after review of the pull request).**
+  `NODE_AUTH_TOKEN` is set on the whole `just test-full` step, because the render and its
+  `npm ci` run inside the test. So pytest, the render's install scripts and every recipe
+  of its gate can read it. It is the run's own token, read-only (`contents` and
+  `packages`), it expires when the job ends, and the hub package is public. Narrowing it
+  further needs the install moved out of the test, or a change to T02's
+  `template/scripts/initialize.sh`.
 - **Noise, not a defect.** Inside the render, uv prints ``warning: `VIRTUAL_ENV=[...]` does
   not match the project environment path `.venv` and will be ignored``. This is because
   the harness runs under the template's `uv run`; the render's recipes use their own
