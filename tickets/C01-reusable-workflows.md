@@ -742,6 +742,9 @@ Chromatic run is the revert's push, which sets the baseline. The `/chromatic` ru
   yet: the first release asks nothing", which this release makes false, and it is where a
   game looks for what a release asks of it. The change is recorded under Managed in
   `CHANGELOG.md`.
+- **`README.md` line 133, also unlisted,** now names `ci / frontend`, `ci / documents` and
+  `ci / stories` in the by-hand bootstrap list, for the same reason: the old names became
+  false with this change. A repository file reaches no game, so it has no changelog entry.
 - **`quality-gates.md` changed beyond its two named paragraphs.** The actionlint-gap
   paragraph placed the multi-line shell in `chromatic.yml`, and the `packages: read`
   sentence placed the scope on "the one job in each that does". Both became false, and
@@ -784,7 +787,8 @@ Chromatic run is the revert's push, which sets the baseline. The `/chromatic` ru
     carry spaces, so the list is split on commas alone, with no trimming.
   - The expected protection line becomes
     `false ci / documents,ci / frontend,ci / stories false false false false false`.
-  - Step 8's "Bootstrap" text and `README.md` line 133 name the old contexts.
+  - Step 8's "Bootstrap" section replaces `README.md`'s by-hand list, which now names the
+    new contexts; the section should keep them.
   - Two of C03's open points were settled here. `POST /repos/{owner}/{repo}/pages` accepted
     `build_type=workflow` with no `source` on a repository that had no commits yet. A
     `checks` list without `app_id` was accepted before any workflow had run, and it read
@@ -804,6 +808,9 @@ Chromatic run is the revert's push, which sets the baseline. The `/chromatic` ru
   address Pages serves. The handbook, `AGENTS.md` and a game's README all state it.
 - **To C02 and C04:** the host is `steven-cutting/biscuit_games_tooling`, public, released
   as annotated `vMAJOR.MINOR.PATCH` tags that callers pin by commit. `v0.1.0` is `be41556`.
+  Under the two-commit rule, the tagged workflows pin the action at `73df4e2 # v0.1.0`,
+  the commit before the tag's. Both commits hold the same `action.yml`, but an updater
+  that moves a SHA to its comment's tag (C04) would rewrite that pin to `be41556`.
 - **To C07:** whether Poodl keeps `stage` and `artifact_path`, which the prompt uses, or
   takes the template's project-site `pages.yml`. Poodl's `chromatic.yml` lacks the token
   guard the shared workflow carries, so adopting it changes what happens only while the
