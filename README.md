@@ -47,9 +47,9 @@ just check
   repositories, and on Linux a prior `just storybook-browsers-deps`, which asks for sudo.
 
 Then commit everything, `.copier-answers.yml` and both lockfiles included, because
-`copier update` reads the answers file. Before the first push, grant the repository read
-access on the package and set its Pages source to GitHub Actions; both are steps in
-"Bootstrap a repository" below.
+`copier update` reads the answers file. Before the first push, run
+`scripts/bootstrap_repo.sh steven-cutting/<game> --apply`, which sets the Pages source and
+everything else "Bootstrap a repository" below lists.
 
 From a clone of this repository, `just new-game <directory>` asks the questionnaire,
 renders from the latest tag and prints the next steps.
@@ -126,31 +126,43 @@ in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Bootstrap a repository
 
-A rendered game's repository needs five things no file can carry:
+A rendered game passes `just check` on its first run, but its repository still needs
+settings no file can carry, and `scripts/bootstrap_repo.sh` applies them with `gh`:
 
 1. The Pages source set to GitHub Actions. Until it is, `pages.yml` builds its artefact
    and the deploy job fails with `Failed to create deployment (status: 404)`.
 2. Protection on `main` requiring the checks `ci / frontend`, `ci / documents` and
    `ci / stories`: not required to be up to date, no review required, force pushes and
-   deletion refused.
+   deletion refused, administrators not bound.
 3. `CHROMATIC_PROJECT_TOKEN` as a repository secret. It is optional: without it
-   `chromatic.yml` reports and skips the publish.
+   `chromatic.yml` reports and skips the publish. The script stores it only from stdin,
+   under `--chromatic-token-stdin`, so the token is never an argument and never in a file.
 4. Private vulnerability reporting switched on where GitHub offers it, which is on public
    repositories. On a private one the endpoint answers `404`, and the fallback paragraph
    in the game's `SECURITY.md` is the route instead.
-5. The package's grant of read access to the repository. It is a setting on
-   `@steven-cutting/biscuit-games`, its "Manage Actions access" setting, and not on either
-   repository; no REST endpoint for it is known. Without it every workflow that installs
-   the package fails.
 
-This repository needs three of the five: step 2, with `fast` and `full` as the checks, in
-the order "Bootstrap of this repository" below gives; step 4; and step 5, because its
-`full` job installs the package. It publishes no Pages site and has no Chromatic workflow,
-so steps 1 and 3 do not apply.
+The script prints a fifth step it cannot make: the package's grant of read access, a
+setting on `@steven-cutting/biscuit-games` under "Manage Actions access" rather than on
+either repository, with no REST endpoint. `@steven-cutting/biscuit-games` is public, so no
+grant is needed today and every workflow installs it with the run's own token; the step is
+printed because nothing can read that back, and it is the first thing to check if a job
+ever fails with `404 Not Found` for the package.
 
-These steps are done by hand until
-[`tickets/C03-repository-bootstrap.md`](tickets/C03-repository-bootstrap.md) lands and its
-script replaces this list.
+```sh
+scripts/bootstrap_repo.sh steven-cutting/<game>              # prints what it would change
+scripts/bootstrap_repo.sh steven-cutting/<game> --apply      # changes it
+```
+
+Every `--apply` is an authorised action; see [`AGENTS.md`](AGENTS.md). A second `--apply`
+prints `changed: 0` and issues no call, unless it repeats `--chromatic-token-stdin`, which
+rotates the secret every time it is given: leave the flag off to read idempotency back. `--checks` takes the required contexts, split on
+commas alone because the names carry spaces; `--no-pages` drops step 1 for a repository
+that deploys nothing; `--hygiene` adds `delete_branch_on_merge` and turns the wiki and
+projects off.
+
+This repository was bootstrapped the same way, with `--no-pages` because it publishes no
+Pages site and no Chromatic workflow, and in the two rounds
+"Bootstrap of this repository" below gives.
 
 ## Maintain the template
 
@@ -235,10 +247,10 @@ weekly and on dispatch. `fast` runs the steps of `just check`, with the one down
 fast suite makes, the pinned Allium binary. `full` runs `just test-full`, which installs
 the platform package inside a render with the run's own token under `packages: read`.
 
-Neither job is a required check yet: `main` is not protected. Applying the bootstrap steps
-to this repository is C03's first job, and it makes `fast` required. `full` becomes
-required only once the package grants `steven-cutting/biscuit_games_template` read access
-(step 5 of "Bootstrap a repository") and `full` has gone green, because a required check
-that cannot pass would block every merge. `full` has passed since pull request 12, so the
-run's own token already reads the package; C03 confirms whether a grant is in place or
-none is needed, then requires both jobs.
+Both are required checks on `main`, applied in two rounds. The first round required
+`fast` alone, because a required check that cannot pass blocks every merge and `full`
+depended on the package being readable; the second added `full` once that was settled.
+It was settled by reading: `@steven-cutting/biscuit-games` is public, so the run's own
+token installs it with no grant, which is why `full` has passed since pull request 12.
+Neither job carries a `paths` filter or a `name:`, so neither can be skipped into blocking
+a merge and each check is named after its job.

@@ -1,7 +1,7 @@
 ---
 id: C03
 title: "Repository bootstrap: the settings a rendered game and this repository need"
-status: open
+status: done
 depends_on: []
 parallel_with: []
 branch: ticket/c03-repository-bootstrap
@@ -443,53 +443,341 @@ serves the game.
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### Outcome
 
-- What was verified and how: quote the dry-run output, the two `--apply` outputs with
-  their `changed:` lines, the five read-backs, and `just lint`.
-- Each endpoint check from step 1: confirmed as written, or what moved and what the
-  script does instead; branch protection or ruleset, and why.
-- What deviated from the ticket and why (a `422` on `PUT /pages`, a `checks` entry
-  that needed `app_id`, a `404` that meant something other than "not enabled").
-- What was handed to another ticket: the README section to T12 or the Pages
-  paragraph to T07 if either had not merged; anything C01 must redo.
-- For the maintainer: Poodl's private vulnerability reporting is off while its
-  `SECURITY.md` promises it; the same script fixes it with
-  `scripts/bootstrap_repo.sh steven-cutting/poodl --apply`, which this ticket does not
-  run.
-- Which authorisations were asked for and given, with the date of each `--apply`, the
-  visibility decision for `tic_tac_toe_beans`, and the two package grants.
-- Which open points were settled, and which are carried forward.
+- `scripts/bootstrap_repo.sh` exists, committed `100755`, `#!/bin/sh`, POSIX, no `jq`.
+  Six steps, fixed numbers: `--no-pages` omits step 1 rather than renumbering the rest.
+- `steven-cutting/biscuit_games_template` was bootstrapped in the two rounds the ticket
+  gives: `--checks fast` first, then `--checks fast,full`. `main` requires `fast` and
+  `full`; private vulnerability reporting is on; Pages stays off; `--hygiene` was not
+  wanted here.
+- `steven-cutting/tic_tac_toe_beans` was bootstrapped before its first push: Pages source
+  `workflow`, `main` requiring `ci / frontend`, `ci / documents` and `ci / stories`,
+  vulnerability reporting on, `--hygiene` applied. No Chromatic project exists, so no
+  secret was stored.
+- T11's render then reached `main` through pull request 1, which passed all three checks.
+  The merge deployed the site, and it serves.
+- `README.md` carries the rewritten "Bootstrap a repository" section, and the managed page
+  `docs/how-to/deploy-to-github-pages.md` cites the script, with its `CHANGELOG.md` entry
+  under Unreleased -> Managed. The next release is at least MINOR.
+- **No package grant was asked for or made.** The package is public; see Deviations.
 
-## Open points
+### What was verified, and how
 
-- Every `gh api` endpoint named here (Pages with `build_type=workflow`, branch
-  protection, private vulnerability reporting) and whether rulesets are now preferred
-  (CONVENTIONS.md §12). Check: step 1, the four documentation pages and the three
-  read-only calls against Poodl, before writing the script.
-- The hub package grants a repository read access through the package's "Manage
-  Actions access" setting and no REST endpoint exists for it (CONVENTIONS.md §12).
-  Check: the package settings page, and the packages documentation page in step 1.
-  The token's missing `read:packages` scope means `gh` cannot read the package at all.
-- Whether `POST /repos/{owner}/{repo}/pages` accepts `build_type=workflow` with no
-  `source`, and whether the `PUT` demands one. Check: the first `--apply` on
-  `tic_tac_toe_beans`; the fallback body is in step 2.
-- Whether a `checks` entry without `app_id` is accepted on a repository no workflow
-  has run in yet. Check: the read-back after the first `--apply` shows the three
-  contexts.
-- Whether `tic_tac_toe_beans` goes public, or stays private on a tier that allows
-  Pages. Check: `gh api repos/steven-cutting/tic_tac_toe_beans --jq .visibility` and
-  the maintainer's answer; vulnerability reporting stays `not available` while it is
-  private.
-- Whether a Chromatic project is wanted for `tic_tac_toe_beans`. Check: the
-  maintainer's answer; without one, `/chromatic` on a pull request replies with the
-  no-token notice and the run stays green.
-- Whether the `github-pages` environment is created by the first deploy run with no
-  step here (`deploy-to-github-pages.md` lines 24-25 and GitHub's documentation both
-  say so).
-  Check: the environments list after T11's first push.
-- Whether T07 and T12 have merged when this ticket is picked up. Check:
-  `status:` in `tickets/T07-handbook-a.md` and `tickets/T12-maintainer-docs.md`.
-- Whether `gh secret set` reads stdin when `--body` is absent, as its help text on
-  2.100.0 states. Check: the one `--apply` that supplies a token, then
-  `gh secret list`.
+Output is quoted. Elisions are in square brackets.
+
+The gate:
+
+```console
+$ git ls-files -s scripts/bootstrap_repo.sh
+100755 [sha] 0  scripts/bootstrap_repo.sh
+$ just lint
+[18 hooks] Passed
+```
+
+`just lint` was first run while the file was still untracked, and passed because prek
+lists tracked files only. Staged, it failed twice and both were fixed: the usage
+heredoc's continuation was indented 33 columns, which editorconfig-checker refuses
+("Wrong amount of left-padding spaces(want multiple of 2)"), and shellcheck raised SC1003
+on the `*'"'* | *'\'*` case pattern, which is now `*'"'* | *\\*`. A script this
+repository does not track is a script the hook gate does not see.
+
+The dry runs, read-only, nothing changed:
+
+```console
+$ scripts/bootstrap_repo.sh steven-cutting/tic_tac_toe_beans
+repository: steven-cutting/tic_tac_toe_beans
+mode: dry run (nothing is changed)
+
+1. Pages source
+   state: no Pages site (HTTP 404)
+   would: gh api -X POST repos/steven-cutting/tic_tac_toe_beans/pages -f build_type=workflow
+
+2. Protection on main requiring ci / frontend,ci / documents,ci / stories
+   state: not protected (HTTP 404)
+   wanted: false ci / documents,ci / frontend,ci / stories false false false false false
+   would: gh api -X PUT repos/steven-cutting/tic_tac_toe_beans/branches/main/protection --input -
+     [the body, one checks entry per name]
+
+3. CHROMATIC_PROJECT_TOKEN
+   state: not set
+   skipped: no token supplied; chromatic.yml notes the absence and skips the publish
+
+4. Private vulnerability reporting
+   state: false
+   would: gh api -X PUT repos/steven-cutting/tic_tac_toe_beans/private-vulnerability-reporting
+
+5. Package read access for @steven-cutting/biscuit-games
+   state: cannot be read: no REST endpoint, and the package needs a read:packages scope
+   [the four notes]
+
+6. Hygiene
+   state: not read
+   skipped: --hygiene not given
+
+changed: 0 (dry run; 3 would change)
+rc=0
+$ scripts/bootstrap_repo.sh steven-cutting/biscuit_games_template --no-pages --checks fast
+[five steps, numbered 2 to 6; step 2 wants `false fast false false false false false`]
+changed: 0 (dry run; 2 would change)
+rc=0
+```
+
+Both were re-read afterwards: protection still `404`, Pages still `404`, reporting still
+`false` on each repository.
+
+The applies, each run twice. This repository, round one, 2026-09-16:
+
+```console
+$ scripts/bootstrap_repo.sh steven-cutting/biscuit_games_template --no-pages --checks fast --apply
+[step 2: + gh api -X PUT [...]/branches/main/protection --input -]
+[step 4: + gh api -X PUT [...]/private-vulnerability-reporting]
+changed: 2
+$ scripts/bootstrap_repo.sh steven-cutting/biscuit_games_template --no-pages --checks fast --apply
+2. Protection on main requiring fast
+   state: false fast false false false false false
+   already
+4. Private vulnerability reporting
+   state: true
+   already
+changed: 0
+```
+
+The game, the same day, with `--hygiene`:
+
+```console
+$ scripts/bootstrap_repo.sh steven-cutting/tic_tac_toe_beans --hygiene --apply
+[step 1: + gh api -X POST [...]/pages -f build_type=workflow]
+[step 2: + gh api -X PUT [...]/branches/main/protection --input -]
+[step 4: + gh api -X PUT [...]/private-vulnerability-reporting]
+[step 6: state false true true; + gh repo edit [...] --delete-branch-on-merge --enable-wiki=false --enable-projects=false]
+changed: 4
+$ scripts/bootstrap_repo.sh steven-cutting/tic_tac_toe_beans --hygiene --apply
+[every step `already` or `skipped`]
+changed: 0
+```
+
+This repository, round two, 2026-09-16:
+
+```console
+$ scripts/bootstrap_repo.sh steven-cutting/biscuit_games_template --no-pages --checks fast,full --apply
+2. Protection on main requiring fast,full
+   state: false fast false false false false false
+   wanted: false fast,full false false false false false
+   + gh api -X PUT [...]/branches/main/protection --input -
+[changed: 1. The tail was elided when the run was captured; the one `+` line above
+is the whole of what it did.]
+$ [the same command again]
+   state: false fast,full false false false false false
+   already
+changed: 0
+```
+
+No second run printed a line beginning `+`.
+
+The read-backs:
+
+```console
+$ gh api repos/steven-cutting/tic_tac_toe_beans/pages --jq '[.build_type, .html_url] | join(" ")'
+workflow http://stevencutting.com/tic_tac_toe_beans/
+$ gh api repos/steven-cutting/tic_tac_toe_beans/branches/main/protection --jq '[.required_status_checks.checks[] | [.context, (.app_id|tostring)] | join("@")]'
+["ci / frontend@null","ci / documents@null","ci / stories@null"]
+$ gh api repos/steven-cutting/tic_tac_toe_beans/private-vulnerability-reporting --jq .enabled
+true
+$ gh secret list -R steven-cutting/tic_tac_toe_beans
+[empty]
+$ gh api repos/steven-cutting/tic_tac_toe_beans --jq '[.delete_branch_on_merge, .has_wiki, .has_projects] | map(tostring) | join(" ")'
+true false false
+$ gh api repos/steven-cutting/biscuit_games_template/branches/main/protection --jq '[.required_status_checks.checks[] | [.context, (.app_id|tostring)] | join("@")]'
+["fast@15368","full@15368"]
+```
+
+The end-to-end proof. Pull request 1 in `tic_tac_toe_beans`, opened from `setup` and
+squash-merged as `de27e13`:
+
+```console
+$ gh pr checks 1 --repo steven-cutting/tic_tac_toe_beans
+ci / documents  pass  1m31s
+ci / frontend  pass  35s
+ci / stories  pass  1m7s
+$ gh run list --repo steven-cutting/tic_tac_toe_beans --limit 3
+completed  success  [...] (#1)  Chromatic  main  push  35067100845  36s
+completed  success  [...] (#1)  Deploy to GitHub Pages  main  push  35067100832  42s
+completed  success  [...] (#1)  CI  main  push  35067100749
+$ gh run view 35067100832 --repo steven-cutting/tic_tac_toe_beans --log | grep -i BASE_PATH
+pages / build  [...]   base_path: /tic_tac_toe_beans
+pages / build  [...]   BASE_PATH: /tic_tac_toe_beans
+$ gh api repos/steven-cutting/tic_tac_toe_beans/environments --jq '.environments[].name'
+github-pages
+$ curl -sIL https://steven-cutting.github.io/tic_tac_toe_beans/ | grep -iE '^(HTTP|location)'
+HTTP/2 301
+location: https://stevencutting.com/tic_tac_toe_beans/
+HTTP/2 200
+$ curl -sL https://stevencutting.com/tic_tac_toe_beans/ | grep -o '<title>[^<]*</title>'
+<title>Tic Tac Toe Beans</title>
+```
+
+`gh run list`, `gh pr checks` and `git ls-files -s` separate their columns with
+tabs, shown here as two spaces.
+
+### Each endpoint check from step 1
+
+- **Pages.** `POST /repos/{owner}/{repo}/pages` with `-f build_type=workflow` and no
+  `source` was accepted on `tic_tac_toe_beans`, a repository with commits and no site, and
+  `GET` then returned `workflow`. No `422` asked for a source, so the fallback body in the
+  ticket's step 2 was never needed. The `409`-to-`PUT` fallback is in the script and was
+  not exercised. C01 had already accepted the same `POST` on a repository with no commits.
+- **Branch protection.** `PUT .../branches/main/protection` with the ticket's body was
+  accepted as written; `required_status_checks`, `enforce_admins`,
+  `required_pull_request_reviews` and `restrictions` are all required and the last two take
+  `null`. `GET` answers `404` "Branch not protected", which the script reads from gh's
+  stderr. The deprecated `contexts` is still mirrored back beside `checks`; the script
+  reads `checks[].context`, so it does not lean on the mirror.
+- **Private vulnerability reporting.** `GET` returns `{"enabled": bool}` and `PUT` with no
+  body enables it. Both repositories answered `false` and then `true`.
+- **Rulesets, not adopted.** Classic branch protection was kept. Both repositories answer
+  `[]` on `/rulesets`, Poodl uses classic protection, the four settings map one to one onto
+  its fields, and nothing here needs more than one rule on one branch. Nothing in GitHub's
+  documentation deprecates branch protection.
+- **The package grant.** No REST endpoint was found, and the token lacks `read:packages`,
+  so `gh api users/steven-cutting/packages/npm/biscuit-games` answers `403`. See
+  Deviations: the grant turned out not to be needed at all.
+
+### Deviations
+
+- **The package grant is not needed, and none was made or asked for.**
+  `https://github.com/users/steven-cutting/packages/npm/package/biscuit-games` answers an
+  unauthenticated request, redirecting to the hub's package page, which reads **Public**; a
+  nonexistent-package control answers `404`. A public package is installable by any
+  repository with the run's own token. That agrees with C01, whose throwaway installed with
+  no grant, and with this repository's `full`, green since pull request 12. So the
+  ticket's steps 6 and 10, and its "A missing grant fails every installing job", describe a
+  setting that does not apply today. Step 5 still prints, because no endpoint reads it
+  back, and it names the five UI steps for the day the package is made private.
+- **Two `README.md` sections changed, not the one step 8 names.** "Bootstrap of this
+  repository" said `main` was unprotected, that `fast` was not yet required and that C03
+  would confirm whether a grant existed. All three became false as this ticket ran.
+- **The step 8 section is not the ticket's text.** It keeps the `ci / ...` names and the
+  two-round story, drops the claim that the grant stands between a game and a green push,
+  and gains the option summary, because the script now has five options the ticket's
+  paragraph does not mention.
+- **The Pages paragraph sits after the numbered list**, not "between the numbered list and
+  the paragraph beginning 'Until step 1 is done'". C01 rewrote that page: it now has two
+  numbered items, then the `github-pages` paragraph, then a paragraph beginning "Until
+  step 2 is done". The paragraph also says the script prints "step 2", which on that page
+  is the grant, rather than naming the grant twice.
+- **Step 10 (a) needed no decision.** `tic_tac_toe_beans` is public, not private as the
+  ticket and T11 record, so there was no visibility change, and step 4 was a `PUT`.
+- **`--checks` defaults to `ci / frontend,ci / documents,ci / stories`**, C01's names, not
+  the ticket's `frontend,documents,stories`. The list is split on commas alone, with no
+  trimming, because the names carry spaces.
+- **`--no-pages` omits step 1 rather than renumbering**, so its output is five steps
+  numbered 2 to 6. The numbers are the ticket's and the README's.
+- **A `checks` entry without `app_id` is stored as `app_id: null`** on a repository no
+  workflow has run in: the game read back `ci / frontend@null` and the two others, where
+  this repository, whose `fast` had run, read back `fast@15368`. The ticket expected GitHub
+  to bind each context to the reporting app at write time. It does not, and the checks
+  matched their runs anyway. The script compares `.context` alone, so idempotency is
+  unaffected either way.
+- **`gh` prints a 404's JSON body on stdout even under `--jq`**, and its `HTTP 404`
+  message on stderr. The script therefore discards captured stdout on a non-zero exit and
+  reads the status from stderr, and `gh_read` sets globals rather than returning through a
+  command substitution, whose subshell would have swallowed the status.
+- **The branch is the Supacode worktree's** `C03-repository-bootstrap-2026-9-15`, not the
+  `ticket/c03-repository-bootstrap` in this file's frontmatter, as T10 to T12 and C01 were.
+- **`setup` reached `main` through a pull request**, the maintainer's choice, not the
+  direct push the ticket's step 10 anticipated. It passed the three required checks, which
+  is a stronger proof than a push by an unbound administrator would have been.
+- **`full` failed once for a reason outside this repository**, on this ticket's own pull
+  request 20. The render's first `just lint` installs every hook, and `cargo-binstall` was
+  timed out by `api.github.com`, fell back to a source install and died with
+  "cargo-install does not support `--install-path`". `fast` passed. A re-run of the failed
+  job passed in 3m26s with no change. CONVENTIONS.md §13 already states the risk that a
+  render's first `just check` needs the network; this is the first time it has cost a
+  required check, which is worth knowing now that `full` is one.
+- **Four changes after review of the pull request**, all conceded as true:
+  - `--checks ''` split into no fields at all, so the validation loop never ran and the
+    body went out as `"checks": []`, which removes every required check rather than being
+    refused. An empty list, a leading or trailing comma and a doubled comma are now
+    refused before the split. Argument errors exit 2, as a bad option does, where 1 stays
+    the exit for a failed `gh` call.
+  - The `422`-asks-for-a-source fallback the ticket's step 2 describes is now in the
+    script, on the `POST` and on the `PUT`, in `pages_with_source`. It has still never
+    fired: `build_type` alone was accepted on both repositories.
+  - `README.md` claimed a second `--apply` always prints `changed: 0`. It does not under
+    `--chromatic-token-stdin`, which rotates the secret every time it is given; the
+    sentence now says so.
+  - `README.md`'s first-push paragraph still sent a maintainer to grant package access by
+    hand, which the rewritten section contradicts. It now names the script.
+
+### Handed back
+
+- **To the maintainer, for Poodl:** its private vulnerability reporting is `false` today
+  while its `SECURITY.md` promises it. `scripts/bootstrap_repo.sh steven-cutting/poodl
+  --apply` fixes it; this ticket did not run it. Poodl's protection already reads
+  `false ci / documents,ci / frontend,ci / stories false false false false false`, so C01's
+  prompt was applied there.
+- **To T07, or a follow-up:** the seed `SECURITY.md` rendered into `tic_tac_toe_beans`
+  still says "While this repository is private, only people its owner has added can see it
+  at all". The repository is public and its reporting form is on. Seeds are frozen at
+  `v0.1.0`, so this is not C03's to change, and the paragraph is conditional prose rather
+  than a false claim, but it reads oddly on a public repository.
+- **To a follow-up on the Pages page:** its step 2 and the paragraph beginning "Until step
+  2 is done" tell a game the package grant is needed and that `npm ci` fails with
+  `404 Not Found` without it. The package is public, so neither is true today. C03's scope
+  on that page is one paragraph, so the prose was left as C01 wrote it.
+- **To C04:** `--hygiene` sets `delete_branch_on_merge`, which deleted `setup` when pull
+  request 1 merged. Any automation that expects a long-lived branch in a bootstrapped
+  repository has to account for that.
+- **Nothing to C01.** It had already renamed the contexts this script encodes.
+
+### Which authorisations were asked for and given
+
+| Date | Action | Given |
+| --- | --- | --- |
+| 2026-09-15 | Chromatic, `setup` route and `--hygiene`, asked together | no Chromatic project; a pull request from `setup`; `--hygiene` on the game only |
+| 2026-09-16 | `--apply` on `biscuit_games_template`, round one | yes |
+| 2026-09-16 | `--apply` on `tic_tac_toe_beans`, with `--hygiene` | yes |
+| 2026-09-16 | Push `setup` and open its pull request | yes |
+| 2026-09-16 | Merge pull request 1, squash | yes |
+| 2026-09-16 | `--apply` on `biscuit_games_template`, round two | yes |
+
+No package grant was asked for, because none is needed. No visibility change was asked
+for, because `tic_tac_toe_beans` is already public. Pushing this branch and opening its
+pull request are asked for separately, after this file is committed.
+
+## Open points, settled
+
+- **The `gh api` endpoints, and rulesets** (CONVENTIONS.md §12). All three endpoints
+  behave as the ticket wrote them; classic branch protection was kept over rulesets. See
+  "Each endpoint check from step 1".
+- **The package grant.** No REST endpoint exists, and the token cannot read the package at
+  all without `read:packages`. It does not matter: the package is public and no grant is
+  needed. See Deviations.
+- **`POST /pages` with no `source`.** Accepted, on a repository with commits and no site.
+  No `422`, so the fallback body was never sent. C01 had accepted the same call on a
+  repository with no commits.
+- **A `checks` entry without `app_id`.** Accepted before any workflow had run, stored as
+  `app_id: null`, read back as sent, and it matched the runs when they came. Compare
+  `fast@15368` on this repository, where a run already existed.
+- **`tic_tac_toe_beans`' visibility.** Already `public`, so no decision and no change.
+  Vulnerability reporting is on, not `not available`.
+- **A Chromatic project for `tic_tac_toe_beans`.** None wanted. Step 3 skips in every run,
+  and the workflow's own guard keeps `/chromatic` green without a token.
+- **The `github-pages` environment.** Created by the first deploy run with no step here:
+  the environments list was empty before the merge and holds `github-pages` after it.
+- **T07 and T12.** Both `done`, so steps 8 and 9 both applied and nothing was handed back
+  to either.
+
+## Open points, carried forward
+
+- **`gh secret set` reading stdin when `--body` is absent.** Its help text on 2.100.0 says
+  so ("reads from standard input if not specified") and the script is written to it, but no
+  Chromatic project exists, so no `--apply` supplied a token and the path was never run.
+  Stated rather than claimed as seen.
+- **Step 4's `not available` message.** It exists in the script, exactly as the ticket
+  words it, and no repository in reach exercises it: `tic_tac_toe_beans`,
+  `biscuit_games_template` and Poodl are all public, and all three answer the endpoint. The
+  first private repository bootstrapped will be its first run.
+- **The `409`-to-`PUT` fallback on `POST /pages`.** In the script, not exercised: neither
+  repository had a site.

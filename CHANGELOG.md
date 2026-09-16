@@ -15,6 +15,12 @@ CI and tickets, reaches no game.
 
 ### Managed
 
+- `docs/how-to/deploy-to-github-pages.md` names `scripts/bootstrap_repo.sh` in the
+  template repository under "One-time setup": the script applies the Pages source with
+  `gh`, together with the branch protection and the vulnerability-reporting setting the
+  rest of the handbook assumes, and prints the package's read grant, which has no REST
+  endpoint. One paragraph added; nothing else on the page changed.
+
 ### Seed
 
 ### Questionnaire
