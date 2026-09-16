@@ -81,7 +81,7 @@ this project means by clean. `allium check` exits 0 on an `info` diagnostic — 
 one, so the waiver the modules used to carry for it was never what kept the recipe green —
 and `allium analyse` keys its status on findings alone, so a module that does not parse
 passes it with the `error` sitting in the JSON it has just printed.
-`scripts/run_allium.py` reads the arrays instead, and treats a non-zero status beside an
+`bg-run-allium` reads the arrays instead, and treats a non-zero status beside an
 empty report as a fault in the tool, never as a pass.
 
 Either recipe reporting anything at all is therefore a regression in the change under

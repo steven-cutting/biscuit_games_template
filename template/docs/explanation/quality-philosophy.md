@@ -16,9 +16,10 @@ a decision, it should be deleted rather than tolerated.
 
 Every recipe under `just check` reports and never repairs. Recipes outside it do write —
 `just format`, `just initialize` and the lock recipes among them — and `just fix` is the
-one whose job is repairing what a check reported. `run_project_check.py` enforces the
-split by snapshotting every path Git does not ignore and comparing after every recipe, so
-a check that rewrites a file fails the run rather than hiding drift.
+one whose job is repairing what a check reported. `bg-project-check`, the runner behind
+`just check`, enforces the split by snapshotting every path Git does not ignore and
+comparing after every recipe, so a check that rewrites a file fails the run rather than
+hiding drift.
 
 This is why the pre-commit configuration is split in two. `.pre-commit-config.yaml` is
 the gate and is what gets installed; `.pre-commit-fix.yaml` holds the mutating hooks and

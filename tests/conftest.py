@@ -49,9 +49,10 @@ def default_render(tmp_path_factory: pytest.TempPathFactory) -> Render:
 def git_render(default_render: Render, tmp_path: Path) -> Iterator[Render]:
     """A private copy of the default render inside an initialised git repository.
 
-    validate_agents.py lists files with `git ls-files --others`, so `git init`
-    is enough for it; the update tests (T10) additionally commit, because
-    copier treats untracked files as dirty.
+    The package's scripts take the root from `git rev-parse --show-toplevel`, and
+    `bg-validate-agents` lists files with `git ls-files --others`, so `git init` is
+    enough for both; the update tests (T10) additionally commit, because copier
+    treats untracked files as dirty.
     """
     copy = default_render.copy_to(tmp_path / "game")
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=copy.path, check=True)

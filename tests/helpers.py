@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import runpy
+import contextlib
+import importlib
 import shutil
 import subprocess
 import sys
@@ -61,23 +62,30 @@ def render_template(
     return Render(destination)
 
 
-def run_script_in_process(render: Render, script: str) -> int:
-    """Run a rendered checker as `python scripts/<script>` would, in this process.
+def run_tool_in_process(render: Render, module: str) -> int:
+    """Run a `biscuit_games_tooling` console script's `main()` in this process, inside the render.
 
-    ROOT in both validators is `Path(__file__).resolve().parents[1]`, so the
-    script judges the render it was rendered into. SystemExit carries the code.
+    The render ships no checker of its own: its `pyproject.toml` pins the package, which
+    this repository's environment also installs at the same pin (`test_pins_agree`). Each
+    script takes its root from `git rev-parse --show-toplevel` in the working directory,
+    so the render must be a Git worktree. SystemExit carries the code where one is raised.
     """
-    try:
-        runpy.run_path(str(render.path / "scripts" / script), run_name="__main__")
-    except SystemExit as stop:
-        return int(stop.code or 0)
-    return 0
+    tool = importlib.import_module(f"biscuit_games_tooling.{module}")
+    with contextlib.chdir(render.path):
+        try:
+            return int(tool.main())
+        except SystemExit as stop:
+            return stop.code if isinstance(stop.code, int) else 1
 
 
-def run_script(render: Render, script: str, *args: str) -> subprocess.CompletedProcess[str]:
-    """Subprocess form, for scripts that import a sibling (run_allium imports install_allium)."""
+def run_tool(render: Render, module: str, *args: str) -> subprocess.CompletedProcess[str]:
+    """Subprocess form, for a script that takes arguments or downloads (install_allium, run_allium).
+
+    `python -m` from this repository's environment, never `uv run` inside the render:
+    uv would adopt the render's `pyproject.toml` as the project and sync the render.
+    """
     return subprocess.run(
-        [sys.executable, f"scripts/{script}", *args],
+        [sys.executable, "-m", f"biscuit_games_tooling.{module}", *args],
         cwd=render.path,
         check=False,
         capture_output=True,

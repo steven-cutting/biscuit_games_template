@@ -120,6 +120,19 @@ every game is made in the template instead, and arrives by the next update.
 A template release that asks something of a game beyond resolving markers records it
 here, newest first.
 
+### 2.0.0
+
+The six checkers left `scripts/`, and the update removed them: `validate_docs.py`,
+`validate_agents.py`, `install_allium.py`, `run_allium.py`, `run_project_check.py` and
+`run_ripsecrets_redacted.py`. They are console scripts of the `biscuit-games-tooling`
+package now, which `pyproject.toml` pins and the hooks and recipes call. A file the update
+removes is removed even where this game edited it, so move an edit you want to keep into a
+script of this game's own before updating.
+
+Run `just lock` before `just fix && just check`, so `uv.lock` learns the package pin; until
+it does, every recipe that calls the package fails on a stale lockfile. A gate this game
+added to `just check` goes into the `recipes` list at the end of `pyproject.toml`.
+
 ### 1.0.0
 
 The three workflows call shared workflows in `steven-cutting/biscuit_games_tooling`, and

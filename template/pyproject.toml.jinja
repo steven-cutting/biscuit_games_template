@@ -7,14 +7,15 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+  "biscuit-games-tooling @ git+https://github.com/steven-cutting/biscuit_games_tooling@v0.2.0",
   "prek==0.4.12",
   "ruff==0.16.2",
 ]
 
 [tool.uv]
 # This game ships no Python package. This project exists so `uv run --frozen`
-# can provide a pinned prek and ruff to the hooks; see
-# docs/decisions/0004-python-toolchain.md.
+# can provide a pinned prek, ruff and biscuit-games-tooling to the hooks and
+# recipes; see docs/decisions/0004-python-toolchain.md.
 package = false
 default-groups = ["dev"]
 
@@ -58,3 +59,14 @@ extend-exclude = [
   "package-lock.json",
   "uv.lock",
 ]
+
+[tool.biscuit-games-tooling]
+# What `just check` runs, in order, before `check-clean`. This is the package's
+# default; it is written out so a game that adds a gate appends to it.
+recipes = [
+  "lock-check", "lint", "frontend-static", "frontend-coverage", "frontend-build",
+  "storybook-build", "storybook-test", "check-docs", "check-agents", "check-specs",
+  "analyse-specs",
+]
+# Predicates a page's `requires` may name, true when enabled. None yet.
+predicates = {}

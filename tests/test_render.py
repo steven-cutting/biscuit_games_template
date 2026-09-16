@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import tomllib
 from fnmatch import fnmatchcase
 from posixpath import normpath
 from typing import TYPE_CHECKING, Any
@@ -95,7 +96,7 @@ CALLER = re.compile(
     r"game-(ci|chromatic|pages)\.yml@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)$",
     re.MULTILINE,
 )
-# scripts/validate_docs.py `LINK`: an inline link that is not an image.
+# `LINK` in biscuit_games_tooling.validate_docs: an inline link that is not an image.
 LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 # One answer per rule the `game_name` and `description` validators hold against
 # Markdown (CONVENTIONS §3). Each passes every earlier check, and each made the
@@ -116,6 +117,12 @@ MARKDOWN_ANSWERS = (
     ("description", "A game at https://example.com for beans."),
     ("description", "A beans game, mail beans@example.com today."),
 )
+
+
+def _tooling_pins(pyproject: str) -> list[str]:
+    """The `biscuit-games-tooling` requirements in a pyproject.toml's `dev` group."""
+    dev: list[str] = tomllib.loads(pyproject)["dependency-groups"]["dev"]
+    return [entry for entry in dev if entry.startswith("biscuit-games-tooling ")]
 
 
 def _copier_config() -> dict[str, Any]:
@@ -257,6 +264,12 @@ def test_pins_agree(default_render: Render) -> None:
     hub_version = _copier_config()["hub_package_version"]["default"]
     assert hub_version == "1.1.0"
     assert package["dependencies"]["@steven-cutting/biscuit-games"] == hub_version
+
+    # The checkers a game runs are the ones this harness runs against the render
+    # (tests/helpers.py `run_tool_in_process`), so both name one release.
+    tooling = _tooling_pins(default_render.read("pyproject.toml"))
+    assert len(tooling) == 1
+    assert tooling == _tooling_pins((TEMPLATE_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
 
 def test_managed_pages_link_only_to_stable_pages(default_render: Render) -> None:

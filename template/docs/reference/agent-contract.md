@@ -8,10 +8,10 @@ requires: []
 
 # Agent contract
 
-Enforced by `scripts/validate_agents.py`, run by `just check-agents` and by a pre-commit
-hook. `AGENTS.md` is the single source of truth for how an agent works in this
-repository; everything else in the agent surface exists only so a particular tool can
-find it.
+Enforced by `bg-validate-agents`, a console script of the `biscuit-games-tooling`
+package, run by `just check-agents` and by a pre-commit hook. `AGENTS.md` is the single
+source of truth for how an agent works in this repository; everything else in the agent
+surface exists only so a particular tool can find it.
 
 ## The four surfaces
 

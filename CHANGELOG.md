@@ -20,12 +20,52 @@ CI and tickets, reaches no game.
   `gh`, together with the branch protection and the vulnerability-reporting setting the
   rest of the handbook assumes, and prints the package's read grant, which has no REST
   endpoint. One paragraph added; nothing else on the page changed.
+- The six checkers are no longer rendered: `scripts/validate_docs.py`,
+  `scripts/validate_agents.py`, `scripts/install_allium.py`, `scripts/run_allium.py`,
+  `scripts/run_project_check.py` and `scripts/run_ripsecrets_redacted.py`. They are the
+  console scripts `bg-validate-docs`, `bg-validate-agents`, `bg-install-allium`,
+  `bg-run-allium`, `bg-project-check` and `bg-ripsecrets` of the `biscuit-games-tooling`
+  package, `0.2.0`, from `steven-cutting/biscuit_games_tooling`, and say what the scripts
+  said: that repository's golden test holds stdout, stderr and the exit status equal on
+  Poodl and the hub. The one exception is the runner's usage line. `scripts/` now renders
+  `initialize.sh` and `check_playwright_browsers.js` alone. 95 managed paths in all.
+- `pyproject.toml` pins the package first in the `dev` group,
+  `biscuit-games-tooling @ git+https://github.com/steven-cutting/biscuit_games_tooling@v0.2.0`,
+  and ends with a `[tool.biscuit-games-tooling]` table: `recipes`, the gates `just check`
+  runs before `check-clean`, written out at the package's default, and `predicates`, empty.
+- `.pre-commit-config.yaml`: the `validate-docs`, `validate-agents`, `check-specs`,
+  `analyse-specs` and `ripsecrets` hooks call `uv run --frozen bg-…`. The first four trigger
+  on `pyproject.toml` where they triggered on the script paths, and `ripsecrets` runs in the
+  project environment rather than under `--no-project`. `Justfile`: `install-allium`,
+  `check-docs`, `check-agents`, `check-specs`, `analyse-specs`, `check-clean` and `check`
+  call the console scripts. `scripts/initialize.sh` runs `bg-install-allium`.
+- `AGENTS.md` names the package in Provenance, and the `review-docs` skill names
+  `bg-validate-docs`; its frontmatter, and so its two bridges, are unchanged.
+  `docs/project/repository-map.md`, `docs/reference/commands.md`,
+  `docs/reference/quality-gates.md`, `docs/how-to/work-with-the-specs.md`,
+  `docs/reference/documentation-contract.md`, `docs/reference/agent-contract.md` and
+  `docs/explanation/quality-philosophy.md` name the console scripts.
+  `docs/how-to/maintain-dependencies.md` gains "Moving the tooling package", and its allium
+  section says the pin moves with the package, whose README now carries the checksum
+  recomputation. `docs/how-to/update-from-template.md` gains the `2.0.0` step.
 
 ### Seed
 
 ### Questionnaire
 
 ### Update notes
+
+- A MAJOR release: six managed files are removed. `copier update` deletes
+  `scripts/validate_docs.py`, `scripts/validate_agents.py`, `scripts/install_allium.py`,
+  `scripts/run_allium.py`, `scripts/run_project_check.py` and
+  `scripts/run_ripsecrets_redacted.py` from every game, including where the game edited
+  them. Move an edit worth keeping into a script of the game's own before updating. A gate
+  the game added to `RECIPES` in `run_project_check.py` belongs in `recipes` at the end of
+  `pyproject.toml`.
+- Run `just lock` before `just fix && just check`, so `uv.lock` learns the package pin:
+  until it does, `uv run --frozen` finds no `bg-*` script, and every hook and recipe that
+  calls one fails. The lock clones the package from GitHub, which is public, so it needs
+  the network and no credential.
 
 ## [1.0.0] - 2026-09-15
 

@@ -91,6 +91,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "biscuit-games-tooling" },
     { name = "mypy" },
     { name = "prek" },
     { name = "pytest" },
@@ -108,6 +109,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "biscuit-games-tooling", git = "https://github.com/steven-cutting/biscuit_games_tooling?rev=v0.2.0" },
     { name = "mypy", specifier = "==2.3.1" },
     { name = "prek", specifier = "==0.4.12" },
     { name = "pytest", specifier = "==9.1.1" },
@@ -115,6 +117,11 @@ dev = [
     { name = "ruff", specifier = "==0.16.2" },
     { name = "types-pyyaml", specifier = "==6.0.12.20260906" },
 ]
+
+[[package]]
+name = "biscuit-games-tooling"
+version = "0.2.0"
+source = { git = "https://github.com/steven-cutting/biscuit_games_tooling?rev=v0.2.0#c0a76b6d155064bb229d2974ee068841fee05b69" }
 
 [[package]]
 name = "colorama"

@@ -1,7 +1,7 @@
 ---
 id: C02
 title: Validators, installers and checkers as an installable dev dependency
-status: open
+status: done
 depends_on: [C01]
 parallel_with: []
 branch: ticket/c02-tooling-package
@@ -530,15 +530,343 @@ Expected: `just check-docs` exits 1. Delete the branch afterwards.
 
 ## Hand-back notes
 
-Filled in by the agent that executes this ticket.
+### Outcome
 
-- What was verified and how (quote the golden run, the render's `just check`, the
-  `uv.lock` line and the `lock-check` failure).
-- What deviated from the ticket and why (a module that could not keep its messages
-  word for word; a handbook line whose number had moved).
-- What was handed back to another ticket (C04 for the pin bump rule; C06 for the
-  classification; C07 if Poodl's change went through `copier update`).
-- Which open points were settled, with the outcome of each check.
+- `steven-cutting/biscuit_games_tooling` carries the package `biscuit-games-tooling`
+  `0.2.0`: the six console scripts, `_project.py`, the golden test and its recordings, and
+  `tests/test_project.py`. Pull request 3 was merged as `c0a76b6`, and the annotated tag
+  `v0.2.0` points there. Both were authorised by the maintainer; the maintainer did the
+  merge, because `main` requires an approving review.
+- In this repository, the template renders `scripts/` as `initialize.sh` and
+  `check_playwright_browsers.js` alone. The hooks, recipes and `initialize.sh` call
+  `uv run --frozen bg-…`, and `pyproject.toml` pins `@v0.2.0` in both the template and the
+  root. The harness runs the package from this repository's environment, and
+  `CHANGELOG.md` records the change under Unreleased as a MAJOR release. All of it is
+  committed on the ticket branch.
+- Still to come, each separately authorised: the pull request on `main` and the `v2.0.0`
+  tag; the Poodl and hub changes, handed to the maintainer as two Claude Code prompts.
+
+### What was verified, and how
+
+Output is quoted. Elisions are in square brackets, and so is the `=` padding of pytest's
+summary lines.
+
+The tooling repository, on the branch before the merge:
+
+```text
+$ just check
+uv lock --check
+Resolved 9 packages in 3ms
+[ruff lint, ruff format, builtin checks, markdownlint, typos, actionlint, ripsecrets: Passed]
+tests/test_golden.py .....ss.....ss
+tests/test_project.py ......
+[...] 16 passed, 4 skipped in 3.47s [...]
+$ BG_GOLDEN_POODL=/Users/scutting/projects/poodl BG_GOLDEN_BISCUIT_GAMES=/Users/scutting/projects/biscuit_games just test-network -v
+tests/test_golden.py::test_console_script_matches_the_baseline[biscuit_games-validate_docs] PASSED
+[... the other five biscuit_games cases, run_allium-check and run_allium-analyse among them: PASSED]
+tests/test_golden.py::test_console_script_matches_the_baseline[poodl-validate_docs] PASSED
+[... the other six poodl cases: PASSED]
+[...] 14 passed in 4.23s [...]
+$ gh run view 35074504188 -R steven-cutting/biscuit_games_tooling [the pull request's head, 04cb6a0]
+Run just sync: success
+Run just check: success
+Run just test-network: success
+$ gh run list -R steven-cutting/biscuit_games_tooling [push to main]
+35075293305 push c0a76b6 completed/success Merge pull request #3 from steven-cutting/C02-tooling-package
+$ git ls-remote --tags origin 'v0.2.0*'
+3610736cc22430494a0b4d2994747585de40e388  refs/tags/v0.2.0
+c0a76b6d155064bb229d2974ee068841fee05b69  refs/tags/v0.2.0^{}
+```
+
+The test-network run had 14 cases then; `tests/test_project.py`, added later, makes the
+full run 20. What the recordings hold, with the exit status and the last line printed:
+
+```text
+poodl/validate_docs                   0  Validated 41 pages and 42 canonical topics.
+poodl/validate_agents                 0  Validated AGENTS.md, 2 adapters, and 9 skills.
+poodl/install_allium-check            1  allium is not installed; this project pins 3.6.1. Run just install-allium
+poodl/run_project_check-clean         0  The Git worktree is clean.
+poodl/run_ripsecrets_redacted         1  ripsecrets is unavailable; run just install-hooks
+poodl/run_allium-check                0  allium check: 6 specifications, no diagnostics and no findings.
+poodl/run_allium-analyse              0  allium analyse: 6 specifications, no diagnostics and no findings.
+biscuit_games/validate_docs           0  Validated 52 pages and 56 canonical topics.
+biscuit_games/validate_agents         0  Validated AGENTS.md, 2 adapters, and 10 skills.
+biscuit_games/install_allium-check    1  allium is not installed; this project pins 3.6.1. Run just install-allium
+biscuit_games/run_project_check-clean 0  The Git worktree is clean.
+biscuit_games/run_ripsecrets_redacted 1  ripsecrets is unavailable; run just install-hooks
+biscuit_games/run_allium-check        0  allium check: 3 specifications, no diagnostics and no findings.
+biscuit_games/run_allium-analyse      0  allium analyse: 3 specifications, no diagnostics and no findings.
+```
+
+The golden cases also prove acceptance criterion 2. The fixture commits the hub's
+`scripts/validate_agents.py` over each checkout's `scripts/`, so both trees still carry
+that file, and `bg-validate-agents` exits 0 on both with neither a missing nor an
+unexpected managed file reported.
+
+The golden test is live: changing `Validated` to `Checked` in the package's
+`validate_docs` failed both `validate_docs` cases with `stdout: 'Checked 52 pages and 56
+canonical topics.\n' != 'Validated 52 pages and 56 canonical topics.\n'`.
+
+The six baselines are byte-identical to the hub's: `git hash-object` of each equals
+`git rev-parse 09b4894a:scripts/<name>.py`, for example `validate_docs.py e7a0456…` on
+both sides.
+
+This repository, with both pins at `@v0.2.0`:
+
+```text
+$ just check
+uv lock --check
+Resolved 34 packages in 3ms
+[every hook: Passed]
+Success: no issues found in 10 source files
+tests/test_full.py s
+tests/test_questionnaire.py ...............
+tests/test_render.py .......................
+tests/test_specs.py ss
+tests/test_update.py ...
+tests/test_validators.py ....
+[...] 45 passed, 3 skipped, 31 warnings in 58.08s [...]
+$ grep -n 'biscuit_games_tooling' uv.lock
+112:    { name = "biscuit-games-tooling", git = "https://github.com/steven-cutting/biscuit_games_tooling?rev=v0.2.0" },
+124:source = { git = "https://github.com/steven-cutting/biscuit_games_tooling?rev=v0.2.0#c0a76b6d155064bb229d2974ee068841fee05b69" }
+$ just test-full -p no:warnings
+tests/test_full.py .
+tests/test_questionnaire.py ...............
+tests/test_render.py .......................
+tests/test_specs.py ..
+tests/test_update.py ...
+tests/test_validators.py ....
+[...] 48 passed in 89.96s (0:01:29) [...]
+```
+
+The render, from the working tree with both pins at `@v0.2.0`:
+
+```text
+$ just render ai_tmp/render && cd ai_tmp/render && git init -q -b main && just initialize && just check
+[...]
+ + biscuit-games-tooling==0.2.0 (from git+https://github.com/steven-cutting/biscuit_games_tooling@c0a76b6d155064bb229d2974ee068841fee05b69)
+[...]
+installed allium 3.6.1 at [...]/ai_tmp/render/.tools/bin/allium
+[...]
+Ready. Next: just check.
+==> just lock-check
+==> just lint
+==> just frontend-static
+==> just frontend-coverage
+      Tests  30 passed (30)
+==> just frontend-build
+==> just storybook-build
+==> just storybook-test
+      Tests  3 passed (3)
+==> just check-docs
+Validated 38 pages and 39 canonical topics.
+==> just check-agents
+Validated AGENTS.md, 2 adapters, and 8 skills.
+==> just check-specs
+allium check: 1 specifications, no diagnostics and no findings.
+==> just analyse-specs
+allium analyse: 1 specifications, no diagnostics and no findings.
+==> just check-clean
+All checks passed and the worktree is unchanged.
+$ ls scripts
+check_playwright_browsers.js
+initialize.sh
+$ uv run --frozen bg-validate-docs
+Validated 38 pages and 39 canonical topics.
+$ grep -n biscuit_games_tooling uv.lock
+8:source = { git = "https://github.com/steven-cutting/biscuit_games_tooling?rev=v0.2.0#c0a76b6d155064bb229d2974ee068841fee05b69" }
+75:    { name = "biscuit-games-tooling", git = "https://github.com/steven-cutting/biscuit_games_tooling?rev=v0.2.0" },
+$ sed -i '' 's/@v0.2.0/@v0.2.1/' pyproject.toml && just lock-check
+uv lock --check
+   Updating https://github.com/steven-cutting/biscuit_games_tooling (v0.2.1)
+  × Failed to download and build `biscuit-games-tooling @
+  │ git+https://github.com/steven-cutting/biscuit_games_tooling@v0.2.1`
+[...]
+      fatal: couldn't find remote ref refs/tags/v0.2.1
+error: recipe `lock-check` failed on line 31 with exit code 1
+[then the pin was put back, and `uv lock --check` passed again]
+```
+
+prek lists only the files Git tracks, and a fresh render has none staged, so the `lint`
+step above ran almost every hook against no files. The hook gate was run again with the
+render's files staged:
+
+```text
+$ git add -A && just lint
+uv run --frozen prek run --all-files
+Ruff lint............................................(no files to check)Skipped
+Ruff format check....................................(no files to check)Skipped
+ESLint and Prettier......................................................Passed
+Documentation contract...................................................Passed
+Agent instruction contract...............................................Passed
+Specification diagnostics................................................Passed
+Specification analysis...................................................Passed
+[the nine builtin checks: Passed]
+EditorConfig.............................................................Passed
+markdownlint.............................................................Passed
+typos....................................................................Passed
+lychee...................................................................Passed
+shellcheck...............................................................Passed
+Lint GitHub Actions workflow files.......................................Passed
+ripsecrets...............................................................Passed
+exit=0
+```
+
+Ruff has nothing to check, because no Python ships in a render now.
+
+The regression proof. A local branch `always-fail` in the tooling repository had
+`validate_docs.main` return 1 before validating (commit `88cbf12`, never pushed). The
+render's pin pointed at it:
+
+```text
+$ grep -n 'biscuit-games-tooling @' pyproject.toml
+10:  "biscuit-games-tooling @ git+file:///Users/scutting/.supacode/repos/biscuit_games_tooling/C02-tooling-package@always-fail",
+$ just lock && just check-docs
+Updated biscuit-games-tooling v0.2.0 (04cb6a0b) -> v0.2.0 (88cbf120)
+[...]
+markdownlint.............................................................Passed
+typos....................................................................Passed
+lychee...................................................................Passed
+uv run --frozen bg-validate-docs
+error: recipe `check-docs` failed on line 120 with exit code 1
+exit=1
+```
+
+This ran on the branch-pinned render before the tag existed, hence `04cb6a0b` as the
+starting commit. The render's pin and lock were restored afterwards, and the branch and
+its worktree were deleted.
+
+The Update notes say a stale `uv.lock` breaks the console scripts. To test that, a fresh
+`.venv` in the render was given `pyproject.toml` with the pin and `uv.lock` from before
+it:
+
+```text
+$ uv run --frozen bg-validate-docs
+Creating virtual environment at: .venv
+Installed 2 packages in 2ms
+error: Failed to spawn: `bg-validate-docs`
+  Caused by: No such file or directory (os error 2)
+```
+
+With the package still installed in an existing `.venv`, the same command passed, because
+`uv run` does not remove what the lock no longer names. A game updating from `1.0.0` has
+never installed the package, so the fresh environment is the case the note describes, and
+`just lock-check` fails either way.
+
+### Deviations
+
+- **Version `0.2.0` and tag `v0.2.0`, not `v0.1.0`.** The host already carried `v0.1.0`
+  for the workflows, so the package took the next MINOR of the shared series, as the last
+  open point says. The tooling README states the shared series. Every `@v0.1.0` in steps
+  7 and 11 is `@v0.2.0`, and the verification's `sed` moves `@v0.2.0` to `@v0.2.1`. The
+  tooling `CHANGELOG.md` opens with `[0.2.0]`. The template release is `2.0.0`, the
+  maintainer's choice, so `update-from-template.md` gains `### 2.0.0`.
+- **The regression proof used a local branch and a `git+file://` pin.** The maintainer
+  chose this to avoid pushing a throwaway branch. It exercises the same `uv lock` and
+  `uv sync` path.
+- **Files this ticket does not list:**
+  - `tests/test_update.py` called `run_script_in_process` three times and now calls
+    `run_tool_in_process`.
+  - `tests/conftest.py`'s `git_render` docstring named `validate_agents.py`.
+  - Root `README.md` named `scripts/validate_docs.py` and `scripts/validate_agents.py` in
+    "What every rendered game gets" and in the harness list, and gains one bullet for the
+    pinned package.
+  - The `[tool.uv]` comments in `template/pyproject.toml.jinja` and the root
+    `pyproject.toml` said the project exists for prek and ruff (or copier, pytest and the
+    hook runner); both now name the package.
+  - In the tooling repository, `.gitignore` gained the Python caches and
+    `.markdownlint-cli2.jsonc` gained `MD024` `siblings_only`, which a changelog with a
+    second release needs.
+- **Harness helpers.** `run_script` became `run_tool(render, module, *args)`, running
+  `python -m biscuit_games_tooling.<module>` beside `run_tool_in_process`.
+  `run_tool_in_process` returns `int(main())` and treats a non-integer `SystemExit` code as
+  1, for mypy `--strict`. `test_pins_agree` reads both pins with `tomllib`.
+- **Golden test details the ticket left open:**
+  - The checkouts are fetched one commit deep (`git fetch --depth 1 <clone or URL> <sha>`),
+    because Poodl's `.git` is 346 MB.
+  - Both sides run with `PATH` limited to the virtual environment, `/usr/bin` and `/bin`,
+    so a `ripsecrets` installed elsewhere cannot make a recording machine-dependent. The
+    ripsecrets case therefore compares two "unavailable" exits. The hook path is proved in
+    the render instead (open points, below).
+  - The two network cases run in a copy of the checkout, so the installed binary never
+    reaches the `install_allium --check` case.
+  - `BG_GOLDEN_RECORD=1` writes the recordings.
+- **After review of the tooling pull request** (commits `86b04e4` and `04cb6a0`):
+  - CI's first run failed four recordings. allium walks `docs/specs/` in filesystem order,
+    which differs between macOS and Linux. The recordings now sort allium's blocks by
+    module. The baseline and the package still compare raw.
+  - Codex found that `predicates = { x = "false" }` enabled `x`. Only the boolean `true`
+    enables a predicate now, and a test holds that.
+  - Copilot asked `bg-ripsecrets` to resolve the root and run there. Declined: prek's file
+    arguments are relative to the hook's directory, and the script it replaces had no root
+    either. The README's claim that every script resolves the root was corrected instead.
+  - Copilot's two grammar nits are in comments verbatim from the hub, which read correctly
+    with an omitted "that". They were left.
+  - `tests/test_project.py` was added before the pull request, because the golden
+    checkouts carry no `[tool.biscuit-games-tooling]` table.
+- **`validate_agents` keeps `CANONICAL_SKILLS` as the relative `Path(".agents/skills")`,
+  joined to the root where it is used,** rather than a value computed in `main()`.
+- **`install_allium`'s `CHECKSUMS` comment** now points at the package README rather than
+  `docs/how-to/maintain-dependencies.md`, which no longer holds the recomputation block.
+- **`maintain-dependencies.md`** also lost the "Replace `VERSION` and all four entries in
+  `CHECKSUMS`" sentence, since a game no longer edits those. It keeps the reinstall block
+  under "After taking a release that moves it". The new section sits before "Moving the
+  Allium binary", which refers to it.
+- **Line numbers.** The template's lines differ from the ticket's P numbering, as expected:
+  - `.pre-commit-config.yaml` 38, 45, 59, 66 and 163;
+  - `Justfile` 44, 120, 123, 136, 143, 151 and 155;
+  - `repository-map.md` 33 and 50;
+  - `commands.md` 71, `quality-gates.md` 42 and 83, `work-with-the-specs.md` 84 and
+    `quality-philosophy.md` 19.
+  The template's `AGENTS.md.jinja` has no "pinned by version and SHA-256" stack bullet
+  (P 176-178), so only the two Provenance bullets changed.
+- **The template's ruff config for `scripts/**` stays** in `pyproject.toml.jinja`. No
+  Python ships under `scripts/` now, but a game may add some, and `quality-gates.md` says
+  the ruff hooks lint "Any Python file the game adds; none ships."
+- **Branch name.** The branch is the Supacode worktree's `C02-tooling-package`, in both
+  repositories, as C01's was.
+
+### Handed back
+
+- **To a pull request on `main` for `CONVENTIONS.md`:**
+  - §4's six `scripts/*.py` rows no longer describe the template.
+  - §9's harness API names `run_script_in_process` and `run_script`, and its
+    `test_validators.py` and `test_specs.py` descriptions name the scripts.
+  - §9's `pyproject.toml` paragraph lists `template/scripts` in ruff's `src` and the
+    `template/scripts/**` waivers.
+- **To C04:** the pin to propose bumping is the `biscuit-games-tooling @ git+…@vX.Y.Z` line
+  in a game's `pyproject.toml` `dev` group. `uv lock --upgrade-package
+  biscuit-games-tooling` relocks it, and the package's README gives the level of each
+  release in its version table.
+- **To C06:** this release removes six managed files, which its check should classify as
+  MAJOR. The entry here was written by hand, as the ticket says.
+- **To the maintainer, as prompts:** one Claude Code prompt to run in Poodl and one to run
+  in the hub, neither committed. Each carries the golden verdict for its
+  tree, the exact edits (the hub's `recipes` adds `package-build` and `package-check`
+  after `frontend-build`), `just lock && just sync && just fix && just check`, and a stop
+  before each push, pull request and merge. If C07 lands first, Poodl takes this through
+  `copier update` to `2.0.0`, and its prompt is not needed.
+
+### Open points, settled
+
+- **Poodl at `0a46a485` passes the hub's `validate_docs`:** yes. The golden case exits 0
+  with `Validated 41 pages and 42 canonical topics.`, so the duplicate-key rule finds
+  nothing in Poodl.
+- **`github.token` cloning a private sibling:** not checked, because the repository stayed
+  public.
+- **`uv run --frozen bg-ripsecrets` finds prek's `ripsecrets`:** yes. In the render with its
+  files staged (prek lists tracked files only), `uv run --frozen prek run --all-files
+  ripsecrets` printed `Passed` and exited 0. With `planted.txt` staged, holding a
+  36-character `ghp_` token, it printed `Failed`, exit code 1,
+  `ripsecrets found credential material; the matched values are suppressed`.
+- **The first `just lock` over `https://`:** `uv.lock` carries the `#<commit>` suffix, as the
+  `file://` probe did: `?rev=v0.2.0#c0a76b6d155064bb229d2974ee068841fee05b69`. uv 0.11.18
+  printed no `Updated https://…` line, because the output was not a terminal. A lock with an
+  empty `UV_CACHE_DIR` printed `Resolved 4 packages in 413ms` and wrote the same `source`
+  line.
+- **One tag series or a subdirectory:** one series, at the repository root. The workflows
+  carried `v0.1.0`, so the package is `0.2.0`, and the tooling README says so under
+  "Versions".
 
 ## Open points
 

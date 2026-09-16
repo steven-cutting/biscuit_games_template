@@ -9,7 +9,7 @@ import copier
 import pytest
 
 from tests.conftest import DEFAULT_ANSWERS, TEMPLATE_ROOT
-from tests.helpers import Render, commit_all, git, render_template, run_script_in_process
+from tests.helpers import Render, commit_all, git, render_template, run_tool_in_process
 from tests.inventory import GAME_EDITED, MANAGED, SEED
 
 if TYPE_CHECKING:
@@ -167,8 +167,8 @@ def test_pristine_update_equals_fresh_render(
     assert stale == [], "managed files the update did not bring to HEAD"
     touched = sorted(str(path) for path in SEED if after[str(path)] != before[str(path)])
     assert touched == [], "seed files an update must never touch"
-    assert run_script_in_process(game, "validate_docs.py") == 0
-    assert run_script_in_process(game, "validate_agents.py") == 0
+    assert run_tool_in_process(game, "validate_docs") == 0
+    assert run_tool_in_process(game, "validate_agents") == 0
     commit_all(game.path, "update")
     assert git(game.path, "status", "--porcelain") == ""
 
@@ -202,4 +202,4 @@ def test_update_keeps_game_work(template_clone: Path, tmp_path: Path) -> None:
             assert game.read(path) == fresh.read(path), (
                 f"{path} did not take the template's change"
             )
-    assert run_script_in_process(game, "validate_docs.py") == 0
+    assert run_tool_in_process(game, "validate_docs") == 0
