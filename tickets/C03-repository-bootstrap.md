@@ -688,6 +688,27 @@ tabs, shown here as two spaces.
 - **`setup` reached `main` through a pull request**, the maintainer's choice, not the
   direct push the ticket's step 10 anticipated. It passed the three required checks, which
   is a stronger proof than a push by an unbound administrator would have been.
+- **`full` failed once for a reason outside this repository**, on this ticket's own pull
+  request 20. The render's first `just lint` installs every hook, and `cargo-binstall` was
+  timed out by `api.github.com`, fell back to a source install and died with
+  "cargo-install does not support `--install-path`". `fast` passed. A re-run of the failed
+  job passed in 3m26s with no change. CONVENTIONS.md §13 already states the risk that a
+  render's first `just check` needs the network; this is the first time it has cost a
+  required check, which is worth knowing now that `full` is one.
+- **Four changes after review of the pull request**, all conceded as true:
+  - `--checks ''` split into no fields at all, so the validation loop never ran and the
+    body went out as `"checks": []`, which removes every required check rather than being
+    refused. An empty list, a leading or trailing comma and a doubled comma are now
+    refused before the split. Argument errors exit 2, as a bad option does, where 1 stays
+    the exit for a failed `gh` call.
+  - The `422`-asks-for-a-source fallback the ticket's step 2 describes is now in the
+    script, on the `POST` and on the `PUT`, in `pages_with_source`. It has still never
+    fired: `build_type` alone was accepted on both repositories.
+  - `README.md` claimed a second `--apply` always prints `changed: 0`. It does not under
+    `--chromatic-token-stdin`, which rotates the secret every time it is given; the
+    sentence now says so.
+  - `README.md`'s first-push paragraph still sent a maintainer to grant package access by
+    hand, which the rewritten section contradicts. It now names the script.
 
 ### Handed back
 

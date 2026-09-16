@@ -23,6 +23,13 @@ die() {
   exit 1
 }
 
+# An option's value is an argument error, so it exits 2 as a bad option does,
+# and not 1, which this script keeps for a `gh` call that failed.
+bad_option() {
+  printf '%s\n' "$*" >&2
+  exit 2
+}
+
 repo=''
 apply=''
 # The check names a game's `ci.yml` produces, one per job of the shared workflow
@@ -70,6 +77,14 @@ esac
 # is trimmed: `ci / frontend` is one name, spaces included.
 split_commas() {
   list=$1
+  # Checked before the split, because an empty value splits into no fields at
+  # all and would reach the body as an empty `checks` array, removing every
+  # required check rather than being refused.
+  case $list in
+    '') bad_option '--checks: the list is empty' ;;
+    ,* | *,) bad_option "--checks: '$list' has a leading or trailing comma" ;;
+    *,,*) bad_option "--checks: '$list' has two commas in a row" ;;
+  esac
   set -f
   IFS=','
   # shellcheck disable=SC2086 # deliberate: word splitting on commas alone
@@ -77,9 +92,9 @@ split_commas() {
   set +f
   unset IFS
   for one in "$@"; do
-    [ -n "$one" ] || die "--checks: empty check name in '$list'"
+    [ -n "$one" ] || bad_option "--checks: empty check name in '$list'"
     case $one in
-      *'"'* | *\\*) die "--checks: '$one' carries a quote or a backslash" ;;
+      *'"'* | *\\*) bad_option "--checks: '$one' carries a quote or a backslash" ;;
     esac
   done
   printf '%s\n' "$@"
@@ -142,6 +157,26 @@ announce() {
   changed=$((changed + 1))
 }
 
+# `build_type` alone has been accepted by both verbs on every repository tried.
+# Where an older Pages API demands a source, the documented body carries one, and
+# the fallback says so rather than aborting.
+pages_with_source() {
+  note "HTTP 422: the API asks for a source, so the $1 is resent with one"
+  printf '   + %s\n' "gh api -X $1 repos/$repo/pages --input - (with a main / source)"
+  printf '%s\n' '{"build_type": "workflow", "source": {"branch": "main", "path": "/"}}' |
+    gh api -X "$1" "repos/$repo/pages" --input - >/dev/null
+}
+
+pages_put() {
+  if ! gh api -X PUT "repos/$repo/pages" -f build_type=workflow >/dev/null 2>"$err"; then
+    grep -q '(HTTP 422)' "$err" || {
+      cat "$err" >&2
+      die 'gh api -X PUT pages failed'
+    }
+    pages_with_source PUT
+  fi
+}
+
 printf 'repository: %s\n' "$repo"
 if [ -n "$apply" ]; then
   printf 'mode: apply\n'
@@ -167,19 +202,22 @@ if [ -n "$pages" ]; then
     announce "gh api -X POST repos/$repo/pages -f build_type=workflow"
     if [ -n "$apply" ]; then
       if ! gh api -X POST "repos/$repo/pages" -f build_type=workflow >/dev/null 2>"$err"; then
-        grep -q '(HTTP 409)' "$err" || {
+        if grep -q '(HTTP 409)' "$err"; then
+          note 'HTTP 409: a site exists already, so the PUT sets the source instead'
+          printf '   + %s\n' "gh api -X PUT repos/$repo/pages -f build_type=workflow"
+          pages_put
+        elif grep -q '(HTTP 422)' "$err"; then
+          pages_with_source POST
+        else
           cat "$err" >&2
           die 'gh api -X POST pages failed'
-        }
-        note 'HTTP 409: a site exists already, so the PUT sets the source instead'
-        printf '   + %s\n' "gh api -X PUT repos/$repo/pages -f build_type=workflow"
-        gh api -X PUT "repos/$repo/pages" -f build_type=workflow >/dev/null
+        fi
       fi
     fi
   else
     state "$build_type"
     announce "gh api -X PUT repos/$repo/pages -f build_type=workflow"
-    [ -z "$apply" ] || gh api -X PUT "repos/$repo/pages" -f build_type=workflow >/dev/null
+    [ -z "$apply" ] || pages_put
   fi
 fi
 
@@ -277,7 +315,7 @@ else
     # never echoed and never written to a file.
     chromatic_token=''
     IFS= read -r chromatic_token || true
-    [ -n "$chromatic_token" ] || die '--chromatic-token-stdin: no token on stdin'
+    [ -n "$chromatic_token" ] || bad_option '--chromatic-token-stdin: no token on stdin'
     printf '%s' "$chromatic_token" |
       gh secret set CHROMATIC_PROJECT_TOKEN -R "$repo" >/dev/null
     chromatic_token=''

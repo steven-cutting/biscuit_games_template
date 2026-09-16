@@ -47,9 +47,9 @@ just check
   repositories, and on Linux a prior `just storybook-browsers-deps`, which asks for sudo.
 
 Then commit everything, `.copier-answers.yml` and both lockfiles included, because
-`copier update` reads the answers file. Before the first push, grant the repository read
-access on the package and set its Pages source to GitHub Actions; both are steps in
-"Bootstrap a repository" below.
+`copier update` reads the answers file. Before the first push, run
+`scripts/bootstrap_repo.sh steven-cutting/<game> --apply`, which sets the Pages source and
+everything else "Bootstrap a repository" below lists.
 
 From a clone of this repository, `just new-game <directory>` asks the questionnaire,
 renders from the latest tag and prints the next steps.
@@ -154,7 +154,8 @@ scripts/bootstrap_repo.sh steven-cutting/<game> --apply      # changes it
 ```
 
 Every `--apply` is an authorised action; see [`AGENTS.md`](AGENTS.md). A second `--apply`
-prints `changed: 0` and issues no call. `--checks` takes the required contexts, split on
+prints `changed: 0` and issues no call, unless it repeats `--chromatic-token-stdin`, which
+rotates the secret every time it is given: leave the flag off to read idempotency back. `--checks` takes the required contexts, split on
 commas alone because the names carry spaces; `--no-pages` drops step 1 for a repository
 that deploys nothing; `--hygiene` adds `delete_branch_on_merge` and turns the wiki and
 projects off.
