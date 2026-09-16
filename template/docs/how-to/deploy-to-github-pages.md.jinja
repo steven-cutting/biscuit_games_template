@@ -29,6 +29,11 @@ push that should deploy.
    **Add repository** under **Manage Actions access**, search for this repository,
    `{{ repository }}`, and give it the **Read** role.
 
+The template repository's `scripts/bootstrap_repo.sh` applies step 1 with `gh`, together
+with the branch protection and the vulnerability-reporting setting the rest of this
+handbook assumes. Run it from a checkout of the template before the first push; it also
+prints step 2, which it cannot make, because no REST endpoint for that setting exists.
+
 The deploy job names a `github-pages` environment, which needs no setup: GitHub creates it
 on the first run that reaches that job.
 
