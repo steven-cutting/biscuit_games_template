@@ -15,6 +15,16 @@ CI and tickets, reaches no game.
 
 ### Managed
 
+### Seed
+
+### Questionnaire
+
+### Update notes
+
+## [2.0.0] - 2026-09-18
+
+### Managed
+
 - `docs/how-to/deploy-to-github-pages.md` names `scripts/bootstrap_repo.sh` in the
   template repository under "One-time setup": the script applies the Pages source with
   `gh`, together with the branch protection and the vulnerability-reporting setting the
@@ -210,6 +220,7 @@ render under these 14 paths:
   records `_commit: v0.1.0` in `.copier-answers.yml` and takes later releases with
   `uvx copier update --skip-answered`.
 
-[Unreleased]: https://github.com/steven-cutting/biscuit_games_template/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/steven-cutting/biscuit_games_template/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/steven-cutting/biscuit_games_template/releases/tag/v2.0.0
 [1.0.0]: https://github.com/steven-cutting/biscuit_games_template/releases/tag/v1.0.0
 [0.1.0]: https://github.com/steven-cutting/biscuit_games_template/releases/tag/v0.1.0
