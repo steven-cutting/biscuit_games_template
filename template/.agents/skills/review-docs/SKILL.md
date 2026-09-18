@@ -5,7 +5,7 @@ description: Add or revise a handbook page so it satisfies the documentation con
 
 # Add or revise a documentation page
 
-1. Read `AGENTS.md` and `docs/reference/documentation-contract.md`. The contract is enforced by `scripts/validate_docs.py`, which reports every violation at once.
+1. Read `AGENTS.md` and `docs/reference/documentation-contract.md`. The contract is enforced by `bg-validate-docs`, which `just check-docs` runs and which reports every violation at once.
 2. Find the topic's owner first. Every topic in `docs/manifest.yml` has exactly one canonical page, so prefer editing the owning page over writing a new one.
 3. Say which side of the template the page is on. A managed page is changed in `biscuit_games_template` and arrives by `copier update`; editing it here is a stopgap the next update will merge. A seed page is this game's and no update touches it. `docs/how-to/update-from-template.md` lists both.
 4. A new page needs a `docs/manifest.yml` entry whose `title`, `kind`, `audience`, `canonical_for` and `requires` match the page frontmatter exactly, including list order — the comparison is order-sensitive.

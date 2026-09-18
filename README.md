@@ -61,10 +61,13 @@ renders from the latest tag and prints the next steps.
   `storybook-test`, `check-docs`, `check-agents`, `check-specs`, `analyse-specs` and
   `check-clean`, the last proving the run changed nothing.
 - A handbook of 38 files, 28 pages and 10 decision records, held to `docs/manifest.yml` by
-  `scripts/validate_docs.py`.
+  `bg-validate-docs`.
 - The agent contract: `AGENTS.md`, `CLAUDE.md`, eight skills under `.agents/skills/` with
   sixteen bridges under `.claude/skills/` and `.codex/skills/`, and the Copilot adapter
-  `.github/copilot-instructions.md`, held by `scripts/validate_agents.py`.
+  `.github/copilot-instructions.md`, held by `bg-validate-agents`.
+- The checkers as a pinned dev dependency: `pyproject.toml` pins `biscuit-games-tooling`
+  from `steven-cutting/biscuit_games_tooling` by release tag, and the hooks and recipes call
+  its console scripts, so `scripts/` holds only `initialize.sh` and the browser preflight.
 - Three workflows: `ci.yml`; `chromatic.yml`, which skips the publish cleanly without a
   `CHROMATIC_PROJECT_TOKEN`; and `pages.yml`, which publishes a project site with
   `BASE_PATH` read from the workflow event.
@@ -183,8 +186,9 @@ What `just test` proves, module by module:
   renders byte-identical, and every `.jinja` source renders with no `{{`, `{%` or `{#`; no
   Poodl residue outside the provenance files; the tool pins agree; managed pages link only
   to pages every game keeps; and an answer Markdown would read as syntax is refused.
-- `tests/test_validators.py`: both shipped validators, `scripts/validate_docs.py` and
-  `scripts/validate_agents.py`, pass on a render and fail on a planted defect.
+- `tests/test_validators.py`: both validators the render pins, `bg-validate-docs` and
+  `bg-validate-agents`, pass on a render and fail on a planted defect. They run in process
+  from this repository's environment, which pins the same release (`test_pins_agree`).
 - `tests/test_questionnaire.py`: the questionnaire refuses what the validators in
   `copier.yml` refuse, and computes the slug and the repository from the other answers.
 - `tests/test_update.py`: the `copier update` round trip from `HEAD~2` and from the latest

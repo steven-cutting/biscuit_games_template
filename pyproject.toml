@@ -11,6 +11,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "biscuit-games-tooling @ git+https://github.com/steven-cutting/biscuit_games_tooling@v0.2.0",
   "mypy==2.3.1",
   "prek==0.4.12",
   "pytest==9.1.1",
@@ -21,7 +22,8 @@ dev = [
 
 [tool.uv]
 # No wheel is ever built. This project exists so `uv run --frozen` provides a
-# pinned copier, pytest and the hook runner; see README "Maintaining".
+# pinned copier, pytest, the hook runner and the checkers a render pins; see
+# README "Maintaining".
 package = false
 default-groups = ["dev"]
 
@@ -43,7 +45,7 @@ files = ["tests"]
 line-length = 99
 target-version = "py314"
 unsafe-fixes = false
-src = ["tests", "template/scripts"]
+src = ["tests"]
 
 [tool.ruff.lint]
 select = [
@@ -61,13 +63,8 @@ unfixable = []
 ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
-# The harness asserts, shells out to git and to the rendered scripts by design.
+# The harness asserts, and shells out to git and to the tooling package by design.
 "tests/**" = ["PLR2004", "S101", "S404", "S603", "S607"]
-# The shipped checkers, linted at source. Same waivers Poodl grants them.
-"template/scripts/**" = [
-  "ANN", "BLE001", "EM101", "EM102", "INP001", "PLR0912", "PLR0915",
-  "PLR2004", "S404", "S603", "S607", "T201", "TRY003",
-]
 
 [tool.ruff.format]
 quote-style = "double"

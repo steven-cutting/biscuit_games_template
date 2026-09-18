@@ -88,27 +88,42 @@ renders and the specifications it restates, so a bump is read before it is taken
 Nothing proposes this bump for you. There is no Dependabot here, and one would need the
 registry credential as a stored secret of its own.
 
+## Moving the tooling package
+
+The documentation, agent and specification gates, the allium installer and the runner
+behind `just check` are console scripts of `biscuit-games-tooling`, which the `dev` group in
+`pyproject.toml` pins to a release tag of `steven-cutting/biscuit_games_tooling`. `uv.lock`
+records the commit behind the tag, and `just lock-check` fails when the tag moves without a
+relock.
+
+1. Read the package's `CHANGELOG.md` in that repository for the release you are taking, and
+   the level its README gives the change. A Major release can fail a tree that passed.
+2. Edit the tag in the `biscuit-games-tooling` line of `pyproject.toml`, then relock that
+   one package and read the lockfile diff:
+
+   ```console
+   uv lock --upgrade-package biscuit-games-tooling
+   ```
+
+3. Run `just sync`, because the lock installs nothing, and `just install-allium`, which
+   replaces the binary if the release moved its pin.
+4. On a Major release, run `just check` before committing. Otherwise the hooks that read
+   `pyproject.toml` re-run the contracts and the specifications on the commit.
+
+A tag the package has released is never moved, so relocking without editing the tag
+changes nothing.
+
 ## Moving the Allium binary
 
 `allium` is a checksummed binary, not a package, so no lockfile accounts for it and
-`just lock-check` cannot speak for it. `scripts/install_allium.py` holds the version and
-the SHA-256 of each supported artefact; see
-[decision 0007](../decisions/0007-project-managed-allium-cli.md).
+`just lock-check` cannot speak for it. The `biscuit-games-tooling` package holds the
+version and the SHA-256 of each supported artefact; see
+[decision 0007](../decisions/0007-project-managed-allium-cli.md). Moving the allium pin is
+a release of that package, and this game takes it by moving the package pin, as the section
+above describes. The package's README carries the recomputation of the checksums, because
+upstream publishes none for these files.
 
-Upstream publishes no checksums for these files — its `SHA256SUMS.txt` covers only the
-editor extension and the language server — so all four have to be recomputed by hand:
-
-```console
-V=3.6.1
-for t in aarch64-apple-darwin x86_64-apple-darwin \
-         aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu; do
-  printf '%s  ' "$t"
-  curl -sL "https://github.com/juxt/allium-tools/releases/download/v$V/allium-$t.tar.gz" \
-    | shasum -a 256 | awk '{print $1}'
-done
-```
-
-Replace `VERSION` and all four entries in `CHECKSUMS`, then reinstall and confirm:
+After taking a release that moves it, reinstall and confirm:
 
 ```console
 just install-allium
@@ -129,9 +144,9 @@ carry none at present, but the directive leans on behaviour upstream documents n
 was verified against 3.6.1 only, so any waiver added later must be re-verified on the
 commit that moves the pin, dropped where the new version no longer needs it, and its count
 and shape updated in [Work with the specifications](work-with-the-specs.md) in that same
-commit. Editing `scripts/install_allium.py` is itself a trigger for both specification
-hooks, so the gate re-reads the modules against the new version on the commit that moves
-the pin — but only after `just install-allium` has actually installed it.
+commit. Moving the package pin in `pyproject.toml` is itself a trigger for both
+specification hooks, so the gate re-reads the modules against the new version on the
+commit that moves the pin — but only after `just install-allium` has actually installed it.
 
 ## Take a template update
 

@@ -158,9 +158,10 @@ the decision records it ships under `docs/decisions/`:
   as a project Pages site beneath `{{ base_path }}/`.
 - Side effects behind ports with in-memory fakes.
 - Specifications in Allium as the source of truth for behaviour, checked by a
-  project-managed binary pinned in `scripts/install_allium.py`.
-- A small Python toolchain (`uv`, `prek`, `ruff`) for the hook gate and the
-  two validators; Markdown formatted by `markdownlint-cli2` alone.
+  project-managed binary the `biscuit-games-tooling` package pins and installs.
+- A small Python toolchain (`uv`, `prek`, `ruff` and the `biscuit-games-tooling`
+  package) for the hook gate and the two validators; Markdown formatted by
+  `markdownlint-cli2` alone.
 - The design system taken as a package from the Biscuit Games hub, with a test
   holding every restated clause to the platform's text.
 - Storybook as a component workshop gated by `just check`, and Chromatic as

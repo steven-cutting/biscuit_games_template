@@ -8,8 +8,9 @@ requires: []
 
 # Documentation contract
 
-Enforced by `scripts/validate_docs.py`, run by `just check-docs` and by a pre-commit
-hook. It reports every violation at once rather than stopping at the first.
+Enforced by `bg-validate-docs`, a console script of the `biscuit-games-tooling` package,
+run by `just check-docs` and by a pre-commit hook. It reports every violation at once
+rather than stopping at the first.
 
 The contract exists so documentation cannot quietly rot: every page is registered once,
 owns its topics, repeats its metadata in frontmatter, and is reachable from the index.

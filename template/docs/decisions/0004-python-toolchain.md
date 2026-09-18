@@ -13,18 +13,21 @@ requires: []
 ## Context
 
 This game ships no Python. The hook gate it inherits runs on `prek` under `uv`, and the
-documentation and agent contracts are enforced by two Python scripts. A frontend
+documentation and agent contracts are enforced by two Python checkers. A frontend
 repository could avoid Python entirely by moving the hook runner to a Node equivalent and
 rewriting both validators in TypeScript.
 
 ## Decision
 
 Keep the Python toolchain. `pyproject.toml` declares a virtual project — `package = false`
-— whose only dependencies are `prek` and `ruff`, both pinned exactly and locked in
-`uv.lock`.
+— whose dependencies are `prek`, `ruff` and `biscuit-games-tooling`, each pinned exactly
+and locked in `uv.lock`. The first two are tools; the third is the package whose console
+scripts are the checkers themselves, pinned to a release tag of
+`steven-cutting/biscuit_games_tooling`.
 
-Ruff is added on top of the inherited gate list because the scripts under `scripts/` are
-real Python that would otherwise go unlinted in a repository that gates everything else.
+Ruff is added on top of the inherited gate list so that Python this game adds is linted in
+a repository that gates everything else. None ships today: the checkers moved into the
+package, and `scripts/` holds the first-run script and the browser preflight.
 
 ## Consequences
 
@@ -33,8 +36,10 @@ Contributors need `uv` as well as Node, and both have to be installed before
 Neither the application nor the published site contains any Python.
 
 The two contracts stay as they are, rather than being rewritten and re-debugged. That is
-most of the value: `validate_docs.py` and `validate_agents.py` are ported from a working
-implementation, so their behaviour is known rather than newly invented.
+most of the value: `bg-validate-docs` and `bg-validate-agents` come from a working
+implementation, so their behaviour is known rather than newly invented. Every game runs
+the same release of them, and a fix arrives as a moved pin rather than as an edit merged
+into each copy.
 
 `prek` brings pinned third-party hooks with it — `typos`, `lychee`, `shellcheck`,
 `actionlint`, `ripsecrets`, `editorconfig-checker` — each locked to a commit SHA. Assembling
@@ -46,7 +51,9 @@ deliberately rather than by drift.
 ## What would reopen this
 
 A Node-native hook runner with the same pinned-hook ecosystem, or the two validators
-becoming so simple that rewriting them is cheaper than keeping Python around.
+becoming so simple that rewriting them is cheaper than keeping Python around. Either would
+have to replace the whole package, not only the two validators, because the allium
+installer and runner and the gate runner are in it as well.
 
 ## Related pages
 
