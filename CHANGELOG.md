@@ -51,6 +51,17 @@ CI and tickets, reaches no game.
 
 ### Seed
 
+- `docs/decisions/0004-python-toolchain.md` and
+  `docs/decisions/0007-project-managed-allium-cli.md` name the package. 0004 said the
+  project's only dependencies were `prek` and `ruff`, and that ruff existed for the Python
+  under `scripts/`; 0007 said `scripts/install_allium.py` held the allium pin and
+  `scripts/run_allium.py` ran the subcommand. All of that is false in a render that takes
+  its checkers from `biscuit-games-tooling`, so the passages were rewritten and the
+  decisions kept. No seed page is added, renamed or retitled, and both records keep their
+  numbers, titles and `canonical_for` slugs. A seed change reaches no game that already
+  exists: a game rendered before this release keeps its own copies and may amend them
+  itself.
+
 ### Questionnaire
 
 ### Update notes

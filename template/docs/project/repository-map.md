@@ -16,7 +16,7 @@ there is no backend to be a sibling of.
 ├── AGENTS.md            Engineering conventions and the agent working agreement
 ├── Justfile             Every supported command
 ├── package.json         The application: Svelte, SvelteKit, Vite, Vitest
-├── pyproject.toml       Repository tooling only: prek and ruff
+├── pyproject.toml       Repository tooling only: prek, ruff and the checkers
 ├── .npmrc               Scopes @steven-cutting to GitHub Packages; holds no token
 ├── .copier-answers.yml  What the template was told; read by copier update
 ├── src/

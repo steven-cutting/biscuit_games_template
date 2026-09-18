@@ -825,6 +825,29 @@ never installed the package, so the fresh environment is the case the note descr
   the ruff hooks lint "Any Python file the game adds; none ships."
 - **Branch name.** The branch is the Supacode worktree's `C02-tooling-package`, in both
   repositories, as C01's was.
+- **The two seed decisions were edited after review of the pull request, against this
+  ticket's Non-goals.** Both bots found that a render from this branch contradicts its own
+  records on the day it is made: `0004-python-toolchain.md` said the project's only
+  dependencies were `prek` and `ruff` and that ruff existed for the Python under
+  `scripts/`, and `0007-project-managed-allium-cli.md` said `scripts/install_allium.py`
+  held the allium pin and `scripts/run_allium.py` ran the subcommand. The Non-goals rule
+  protects a record of what was true when it was written, which is why Poodl's and the
+  hub's decisions were left alone; a new game's records are not history, so the maintainer
+  chose to reconcile these two. The numbers, titles and `canonical_for` slugs are
+  untouched, so the frozen seed inventory holds, and `CHANGELOG.md` records it under Seed.
+  `docs/project/repository-map.md`'s tree line, which said `pyproject.toml` holds "prek and
+  ruff", was corrected in the same pass.
+- **Copilot also asked for this ticket's `## Open points` section to be closed or removed,
+  now that the hand-back answers each one.** Left as it is: CONVENTIONS.md §11 fixes the
+  ticket's sections, the Open points section is what the ticket asked before the work, and
+  "Open points, settled" above is the answer to it. C01 closed the same way.
+- **A consequence for a game whose only Python was these scripts.** Poodl's CodeQL, which
+  runs from GitHub's default setup rather than a workflow file, began failing on `main`
+  with `CodeQL detected code written in JavaScript/TypeScript, GitHub Actions and HTML, but
+  not any written in Python` after it adopted the package. The fix is a repository setting,
+  dropping Python from the language list, and the maintainer took it. Nothing in the
+  template ships a CodeQL workflow, and a render has no Python at all, so any game that
+  turns default setup on should leave Python out of it.
 
 ### Handed back
 

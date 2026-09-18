@@ -28,13 +28,16 @@ mistake wearing the right name.
 ## Decision
 
 Install the prebuilt release binary, pinned by version and by SHA-256, into a gitignored
-`.tools/bin/`. `scripts/install_allium.py` holds the version, the release URL and the
-checksum of each supported artefact, and `just install-allium` runs it. `just check-specs`
-and `just analyse-specs` run the result.
+`.tools/bin/`. The `biscuit-games-tooling` package that `pyproject.toml` pins holds the
+version, the release URL and the checksum of each supported artefact, and
+`just install-allium` runs its `bg-install-allium`. `just check-specs` and
+`just analyse-specs` run the result.
 
-The pin sits in the script beside the URL it pins, which is the shape
+The pin sits in the installer beside the URL it pins, which is the shape
 `.pre-commit-config.yaml` already uses for `lychee`: the version travels with the thing it
-describes rather than in a manifest with no second reader.
+describes rather than in a manifest with no second reader. Moving it is therefore a release
+of that package, taken here by moving one line in `pyproject.toml`; the package's README
+carries the checksums and how to recompute them.
 
 `cargo install allium-cli` was the alternative. It was rejected because it drags a third
 toolchain into a repository that already pays deliberately for an unusual second one — see
@@ -66,7 +69,7 @@ Gating took more than a line in the `Justfile`, because no exit code here carrie
 verdict. `allium check` exits non-zero on warnings as well as errors but 0 on an `info`
 diagnostic, and `allium analyse` keys its status on findings alone and ignores diagnostics
 entirely, so a module that fails to parse passes it with the `error` in the JSON it has
-just printed. Neither status means clean, so `scripts/run_allium.py` runs the subcommand,
+just printed. Neither status means clean, so `bg-run-allium` runs the subcommand,
 prints its output whole, and asserts what the contract says: an empty `diagnostics` array
 and an empty `findings` array in every module. A diagnostic can be waived with a
 whole-line `-- allium-ignore <code>` comment — the waiver terms are in
