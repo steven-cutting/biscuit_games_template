@@ -100,8 +100,8 @@ One gap is worth knowing about rather than being surprised by. `actionlint` anal
 find `shellcheck` on its own `PATH`. Under `prek` each hook gets its own environment, so
 the `shellcheck` hook two rows up is not the one `actionlint` can see, and the shell
 embedded in a workflow goes unread. This game's workflows carry no such shell now: the
-three `run:` blocks longer than a line, the `/chromatic` gate, the token check and the
-reply on the pull request, run from `game-chromatic.yml` in
+three `run:` blocks longer than a line, the `/chromatic` gate, the decision whether to
+publish and the reply on the pull request, run from `game-chromatic.yml` in
 `steven-cutting/biscuit_games_tooling`, which checks each by extracting it and running
 `shellcheck` over it by hand. A block of more than a line added to a workflow here deserves
 the same treatment until the gap is closed.

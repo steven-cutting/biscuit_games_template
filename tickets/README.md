@@ -42,6 +42,7 @@ none blocks the build, and C03 is the one to apply first.
 | C05 | Toolchain handbook pages in the hub package | `C05-handbook-in-the-package.md` | none | open |
 | C06 | Template-impact skill and check | `C06-template-impact.md` | T10 (`tests/inventory.py`) | open |
 | C07 | Poodl adopts the template | `C07-poodl-adopts-the-template.md` | T11 (`v0.1.0`) | open |
+| C08 | Chromatic skips the publish on a single-commit history | `C08-chromatic-single-commit.md` | C01, and tooling `v0.3.0` tagged | done |
 
 ## Dependency graph
 
@@ -55,8 +56,9 @@ T00 ──┬── T01 ──┐
       ├── T07 ──┤                 └── C07
       ├── T08 ──┤
       └── T09 ──┘
-C03 (apply to this repository right after T00) ── C01 ── C02, C04
+C03 (apply to this repository right after T00) ── C01 ── C02, C04, C08
 C05, C06 stand alone (C06 reads tests/inventory.py from T10)
+C08 also waits for biscuit_games_tooling to tag v0.3.0
 ```
 
 The graph is acyclic: T00, then nine parallel lanes, then T10, T13, T11, T12 in sequence.

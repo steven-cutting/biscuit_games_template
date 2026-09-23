@@ -43,8 +43,10 @@ jobs:
       issues: write
       pull-requests: write
       packages: read
-    uses: steven-cutting/biscuit_games_tooling/.github/workflows/game-chromatic.yml@be41556ff01d00aba77cfac4c34f9727b8580bd6 # v0.1.0
+    uses: steven-cutting/biscuit_games_tooling/.github/workflows/game-chromatic.yml@6c5c07f6bec86e86b3930dfa41392e4b440e8c85 # v0.3.0
     # Optional. Unset, the called workflow notes its absence and skips the
-    # publish, and the run stays green.
+    # publish, and the run stays green. It skips the same way on a history of
+    # one commit, which Chromatic refuses, so the first push to `main` is green
+    # whether or not the secret exists.
     secrets:
       CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

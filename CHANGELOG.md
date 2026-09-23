@@ -15,6 +15,17 @@ CI and tickets, reaches no game.
 
 ### Managed
 
+- `.github/workflows/ci.yml`, `.github/workflows/chromatic.yml` and
+  `.github/workflows/pages.yml` call the shared workflows in
+  `steven-cutting/biscuit_games_tooling` at its `v0.3.0` commit. The one change behind it is
+  in `game-chromatic.yml`: it skips the publish with a notice, and the run stays green,
+  when the checkout is a single commit. Chromatic refuses that history ("Found only one
+  commit"), and it is what a game's first push to `main` is, so that push failed as soon
+  as `CHROMATIC_PROJECT_TOKEN` was set. The reply on a `/chromatic` comment says which of
+  the two skips happened. `chromatic.yml`'s comment on the secret names the new skip.
+- `docs/reference/quality-gates.md` calls the second of the three shellchecked `run:`
+  blocks the decision whether to publish rather than the token check.
+
 ### Seed
 
 ### Questionnaire
