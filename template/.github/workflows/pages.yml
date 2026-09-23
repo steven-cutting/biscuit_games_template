@@ -28,7 +28,7 @@ jobs:
       pages: write
       id-token: write
       packages: read
-    uses: steven-cutting/biscuit_games_tooling/.github/workflows/game-pages.yml@be41556ff01d00aba77cfac4c34f9727b8580bd6 # v0.1.0
+    uses: steven-cutting/biscuit_games_tooling/.github/workflows/game-pages.yml@6c5c07f6bec86e86b3930dfa41392e4b440e8c85 # v0.3.0
     with:
       # A project site: Pages serves the build at
       # <owner>.github.io/<repository>/, so the app is built to live under that
