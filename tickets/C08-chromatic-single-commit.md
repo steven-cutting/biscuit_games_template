@@ -63,7 +63,7 @@ onward.
 
 | Path | Class | Source | Change |
 | --- | --- | --- | --- |
-| `template/.github/workflows/chromatic.yml` | M | T03's workflow | Line 46: the pinned commit and its `# v0.1.0` comment; lines 47-48: the comment on the optional secret gains the one-commit skip |
+| `template/.github/workflows/chromatic.yml` | M | T03's workflow | Line 46: the pin moves from `be41556… # v0.1.0` to the `v0.3.0` commit; lines 47-50: the comment on the optional secret gains the one-commit skip |
 | `template/.github/workflows/ci.yml` | M | T03's workflow | Line 28: the same pin, moved with it |
 | `template/.github/workflows/pages.yml` | M | T03's workflow | Line 31: the same pin, moved with it |
 | `template/docs/reference/quality-gates.md` | M | T08's page | The middle of the three shellchecked `run:` blocks is no longer "the token check"; it is the publish decision. The count of three stays right |
@@ -171,9 +171,6 @@ Executed on 2026-09-22 on `chromatic-fix`, the branch the ticket names.
 
 ## Open points
 
-- The template release that carries this pin. A pin bump is MINOR, but it may ride with
-  other Unreleased work rather than being cut on its own; whoever cuts the release decides.
-- Whether the pull request here waits for `v0.3.0` (this ticket's `branch:` field is
-  `chromatic-fix`, the worktree the hand-off was written in, so the ticket and the pin move
-  can be one pull request). If the ticket is merged on its own first, execute the steps
-  above on `ticket/c08-chromatic-single-commit` from `main`, per `CONVENTIONS.md` §11.
+- Settled: the pin ships in template `v2.1.0`, a MINOR release cut on its own.
+- Settled: the pull request waited for `v0.3.0`, so the ticket and the pin move landed
+  together on `chromatic-fix` (pull request 23), as its `branch:` field names.
