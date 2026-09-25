@@ -1,12 +1,19 @@
 name: Deploy to GitHub Pages
 
 # Publishing needs write scopes that no other workflow here has, so the deploy
-# lives in its own file rather than as a job on the end of CI.
+# lives in its own file rather than as a job on the end of CI. It runs after CI
+# rather than beside it, so what it publishes is a commit CI has passed.
 
 on:
-  push:
+  # Branch protection does not bind administrators, so a direct push to main
+  # reaches here unchecked unless this waits for CI. `CI` is ci.yml's `name:`;
+  # renaming that workflow without changing this line stops every deploy. No
+  # workflow_dispatch: a manual run would skip the gate, and a redeploy is a
+  # rerun of a gated run.
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
     branches: ['main']
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,6 +28,15 @@ concurrency:
 
 jobs:
   pages:
+    # Only a green CI run of a push to main, and only while that commit is still
+    # main's head: the called workflow checks out github.sha, which for this
+    # event is the head of main, so the equality is what makes the deployed
+    # commit the validated one. A newer push has its own CI run and deploys
+    # itself.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_sha == github.sha
     # The union of what the called jobs hold: the build reads the platform
     # package, the deploy publishes.
     permissions:

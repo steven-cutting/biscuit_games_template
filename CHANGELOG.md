@@ -25,12 +25,32 @@ CI and tickets, reaches no game.
   the two skips happened. `chromatic.yml`'s comment on the secret names the new skip.
 - `docs/reference/quality-gates.md` calls the second of the three shellchecked `run:`
   blocks the decision whether to publish rather than the token check.
+- `.github/workflows/pages.yml` deploys only what CI has passed. It ran on every push to
+  `main` and on dispatch, beside `ci.yml`, so a direct push by an administrator, whom
+  branch protection does not bind, or a repository's first push was published whether or
+  not CI passed on it. It now runs on `workflow_run` when `CI` completes on `main`, and its
+  job deploys only a successful run of a push whose `head_sha` is still `main`'s head.
+  `push` and `workflow_dispatch` are gone, and the comments say why. The permissions,
+  concurrency, the pinned `game-pages.yml` call and `base_path` are unchanged.
+  `docs/how-to/deploy-to-github-pages.md` gains "When it deploys", and its setup and
+  rollback paragraphs, `docs/reference/quality-gates.md`'s paragraph on what protection on
+  `main` buys, and `docs/operations/maintenance.md`'s "Deploying" and "Rolling back" follow.
 
 ### Seed
 
 ### Questionnaire
 
 ### Update notes
+
+- `.github/workflows/pages.yml` asks nothing beyond resolving markers, which appear only
+  where this game edited the lines around `on:` or the `pages` job's opening. After the
+  update, the Pages run follows each CI run on `main`, and its job shows as skipped when
+  that run failed, was cancelled by a newer push, or was not a push. The **Run workflow**
+  button for Pages is gone: a redeploy is a re-run of a Pages run that deployed, for 30
+  days, and a push after that. A game that renamed `ci.yml`'s `name: CI` changes
+  `workflows:` in `pages.yml` to match, or nothing deploys. GitHub runs a `workflow_run`
+  trigger only from the default branch's copy of the file, so the first deploy through
+  the gate is the one that follows the update's own merge into `main`.
 
 ## [2.0.0] - 2026-09-18
 
