@@ -29,7 +29,8 @@ CI and tickets, reaches no game.
   `main` and on dispatch, beside `ci.yml`, so a direct push by an administrator, whom
   branch protection does not bind, or a repository's first push was published whether or
   not CI passed on it. It now runs on `workflow_run` when `CI` completes on `main`, and its
-  job deploys only a successful run of a push whose `head_sha` is still `main`'s head.
+  job deploys only a successful run of a push whose `head_sha` was `main`'s head when that
+  run finished.
   `push` and `workflow_dispatch` are gone, and the comments say why. The permissions,
   concurrency, the pinned `game-pages.yml` call and `base_path` are unchanged.
   `docs/how-to/deploy-to-github-pages.md` gains "When it deploys", and its setup and

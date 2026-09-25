@@ -166,8 +166,8 @@ administrator's direct push, or the repository's first, before any protection ex
 other is an ordinary merge, because the branch is not required to be up to date first — three green
 checks are green for the branch, not for the `main` the merge produces. Neither publishes
 it. CI runs on every push to `main`, and `.github/workflows/pages.yml` waits for it: it
-runs when `CI` completes on `main` and deploys only a green run of a push whose commit is
-still `main`'s head. A red `main` stays unpublished until a push fixes it or a re-run of
+runs when `CI` completes on `main` and deploys only a green run of a push whose commit was
+`main`'s head when that run finished. A red `main` stays unpublished until a push fixes it or a re-run of
 its CI passes, and [Deploy to GitHub Pages](../how-to/deploy-to-github-pages.md) says what
 else the gate costs.
 

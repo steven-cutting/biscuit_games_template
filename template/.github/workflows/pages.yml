@@ -28,11 +28,13 @@ concurrency:
 
 jobs:
   pages:
-    # Only a green CI run of a push to main, and only while that commit is still
-    # main's head: the called workflow checks out github.sha, which for this
-    # event is the head of main, so the equality is what makes the deployed
-    # commit the validated one. A newer push has its own CI run and deploys
-    # itself.
+    # Only a green CI run of a push to main, and only if that commit was main's
+    # head when CI finished: the called workflow checks out github.sha, which for
+    # this event is main's head at that moment, so the equality is what makes the
+    # deployed commit the validated one. A run already waiting when a newer push
+    # lands still deploys its own commit, which CI passed; the newer push has its
+    # own CI run and deploys itself, and a newer waiting run cancels an older one.
+    # A re-run keeps its github.sha, which is what makes it a rollback.
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&

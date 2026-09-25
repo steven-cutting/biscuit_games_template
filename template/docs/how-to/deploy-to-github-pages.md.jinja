@@ -47,11 +47,15 @@ Once the step is done, re-run that Pages run: it builds the same commit again.
 
 `pages.yml` does not run on the push. It runs when a run of the workflow named `CI`
 completes on `main`, and its one job deploys only if that run succeeded, was started by a
-push, and tested the commit that is still `main`'s head. So:
+push, and tested the commit that was `main`'s head when that run finished. So:
 
 - Nothing is published while CI is red. The Pages run appears with its job skipped.
 - A push that a newer one overtakes before its CI passes is never published; the newer
   push deploys itself once its own CI passes.
+- A Pages run that is already waiting, behind a deployment in progress, when a newer push
+  lands still deploys its own commit, which CI passed. The newer push follows once its CI
+  passes, and a newer waiting Pages run cancels an older one, so waiting runs never deploy
+  out of order.
 - There is no **Run workflow** button for Pages, and running CI by hand deploys nothing:
   either would publish a commit no push had proved. A redeploy is a re-run of a Pages run
   that deployed (`gh run rerun`), which GitHub allows for 30 days; after that, a push.

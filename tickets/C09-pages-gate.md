@@ -32,8 +32,10 @@ identical change), `T03-workflows.md`, `C01-reusable-workflows.md`, and the stud
 ## Goal
 
 A game's `pages.yml` runs when the workflow named `CI` completes on `main`, and its one job
-deploys only a successful CI run of a push whose `head_sha` is still `main`'s head. The file
-is the studio's byte for byte, so the two copies of the gate cannot drift apart.
+deploys only a successful CI run of a push whose `head_sha` was `main`'s head when that run
+finished. The file is the studio's, so the two copies of the gate cannot drift apart, but
+for the job's comment: review of the pull request corrected it here, and the studio is owed
+the same correction.
 
 ## Non-goals
 
@@ -82,7 +84,8 @@ is the studio's byte for byte, so the two copies of the gate cannot drift apart.
 
 ## Acceptance criteria
 
-- [x] The render's `.github/workflows/pages.yml` is byte-identical to the studio's file.
+- [x] The render's `.github/workflows/pages.yml` is byte-identical to the studio's file, but
+  for the job's comment, corrected after review of the pull request.
 - [x] No managed page says the site deploys on every push to `main`.
 - [x] `just test` and `just check` are green, the two new tests included.
 - [x] `CHANGELOG.md` carries the Managed bullet and the Update notes bullet.
@@ -96,6 +99,9 @@ diff /Users/scutting/projects/biscuit_studio/.github/workflows/pages.yml ai_tmp/
 just test
 just check
 ```
+
+Since review of the pull request, both `diff`s print one hunk, the job's comment above
+`if:`, until the studio takes the same correction.
 
 The gate itself cannot be exercised from here: `workflow_run` fires only from the default
 branch's copy of `pages.yml`, so the first proof is a game that merges the update and then
@@ -125,3 +131,18 @@ Executed on 2026-09-24 on `fix-template-pages-gate`.
   `workflow_dispatch` for `pages.yml`.
 - Not yet confirmed in a real run: nothing here is proved until a game merges the update
   and pushes to `main`.
+- After review of the pull request (Codex and Copilot, the same finding): `github.sha` on a
+  `workflow_run` event is `main`'s head when the event fired, so the equality is checked
+  when CI finishes, not when the deploy starts. A Pages run waiting behind a deployment in
+  progress still deploys its own commit after a newer push lands. That commit passed CI,
+  and the `pages` group's default `queue: single` cancels an older waiting run when a newer
+  one queues, so nothing unvalidated or out of order is published; "still `main`'s head"
+  claimed more than that. The job's comment in `pages.yml`, "When it deploys" (a new
+  bullet for the waiting run), `quality-gates.md`, the Managed bullet and the Goal now say
+  "was `main`'s head when that run finished". No live check of `refs/heads/main` was added:
+  it would refuse every re-run of an older Pages run, which is the documented rollback; job
+  `pages` calls a reusable workflow, so the check would be a job of its own; and the build
+  checks out `github.sha` minutes later, so the race would be shorter, not gone. The
+  template's `pages.yml` now differs from the studio's by that comment only.
+- Owed: `biscuit_studio`'s `pages.yml` takes the same comment, and the file is byte-identical
+  again.
