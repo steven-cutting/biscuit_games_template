@@ -125,6 +125,19 @@ def _tooling_pins(pyproject: str) -> list[str]:
     return [entry for entry in dev if entry.startswith("biscuit-games-tooling ")]
 
 
+def _workflow(render: Render, name: str) -> dict[Any, Any]:
+    loaded = yaml.safe_load(render.read(f".github/workflows/{name}"))
+    assert isinstance(loaded, dict)
+    return loaded
+
+
+def _triggers(workflow: dict[Any, Any]) -> dict[str, Any]:
+    """A workflow's `on:` block, which a YAML 1.1 loader keys as the boolean `on`, True."""
+    triggers = workflow[True]
+    assert isinstance(triggers, dict)
+    return triggers
+
+
 def _copier_config() -> dict[str, Any]:
     loaded = yaml.safe_load((TEMPLATE_ROOT / "copier.yml").read_text(encoding="utf-8"))
     assert isinstance(loaded, dict)
@@ -270,6 +283,33 @@ def test_pins_agree(default_render: Render) -> None:
     tooling = _tooling_pins(default_render.read("pyproject.toml"))
     assert len(tooling) == 1
     assert tooling == _tooling_pins((TEMPLATE_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+
+
+def test_pages_deploys_only_what_ci_passed(default_render: Render) -> None:
+    # No push and no dispatch of its own: either would publish a commit CI has not
+    # passed, which branch protection alone does not prevent for an administrator.
+    assert _triggers(_workflow(default_render, "pages.yml")) == {
+        "workflow_run": {"workflows": ["CI"], "types": ["completed"], "branches": ["main"]}
+    }
+    [job] = _workflow(default_render, "pages.yml")["jobs"].values()
+    assert job["if"] == (
+        "github.event.workflow_run.conclusion == 'success' && "
+        "github.event.workflow_run.event == 'push' && "
+        "github.event.workflow_run.head_sha == github.sha"
+    )
+    # The push the gate waits for. CI's one job calls game-ci.yml (test_pins_agree),
+    # so the run's conclusion is every gate job's, `stories` included.
+    ci = _workflow(default_render, "ci.yml")
+    assert _triggers(ci)["push"] == {"branches": ["main"]}
+    assert list(ci["jobs"]) == ["ci"]
+
+
+def test_pages_names_ci_by_its_name(default_render: Render) -> None:
+    # `workflow_run` matches a workflow by its `name:`, so a rename on either side
+    # would stop every deploy with nothing failing.
+    pages = _workflow(default_render, "pages.yml")
+    ci = _workflow(default_render, "ci.yml")
+    assert _triggers(pages)["workflow_run"]["workflows"] == [ci["name"]]
 
 
 def test_managed_pages_link_only_to_stable_pages(default_render: Render) -> None:

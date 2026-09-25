@@ -160,14 +160,16 @@ refused. Administrators are not bound by the rule, so the direct push remains av
 when it is genuinely wanted; the protection is there to stop an unproved merge, not to stop
 the author.
 
-The gate is on the merge, not on the deployment. `.github/workflows/pages.yml` deploys on
-every push to `main`, in parallel with CI rather than behind it, so what the protection
-buys is narrower than it sounds: an unproved branch cannot become `main` through a pull
-request. Two paths still publish ahead of a green run. One is the administrator pushing
-directly. The other is an ordinary merge, because the branch is not required to be up to
-date first — three green checks are green for the branch, not for the `main` the merge
-produces. In both cases the deployment and the CI run start together, so watch the run and
-roll back if it is red.
+The protection guards the merge, and the deployment has a gate of its own. Two paths still
+put a commit no check has passed onto `main`. One is a push no protection checks: the
+administrator's direct push, or the repository's first, before any protection exists. The
+other is an ordinary merge, because the branch is not required to be up to date first — three green
+checks are green for the branch, not for the `main` the merge produces. Neither publishes
+it. CI runs on every push to `main`, and `.github/workflows/pages.yml` waits for it: it
+runs when `CI` completes on `main` and deploys only a green run of a push whose commit was
+`main`'s head when that run finished. A red `main` stays unpublished until a push fixes it or a re-run of
+its CI passes, and [Deploy to GitHub Pages](../how-to/deploy-to-github-pages.md) says what
+else the gate costs.
 
 ## Related pages
 

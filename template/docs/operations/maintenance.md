@@ -33,9 +33,9 @@ touches and what it leaves alone.
 
 ## Deploying
 
-Pushing to `main` deploys. There is no staging environment, because there is nothing to
-stage: the artefact is a directory of files, and the only way it can differ between
-environments is the base path.
+Pushing to `main` deploys, once CI passes on the push. There is no staging environment,
+because there is nothing to stage: the artefact is a directory of files, and the only way
+it can differ between environments is the base path.
 
 Before pushing anything that changes the build, reproduce it:
 
@@ -50,9 +50,9 @@ the procedure.
 
 ## Rolling back
 
-Re-run the last good deployment from the Actions tab, or revert and push. There is no
-database to migrate, no cache to invalidate beyond the browser's, and no in-flight
-request to drain.
+Re-run the last good deployment from the Actions tab, which GitHub allows for 30 days, or
+revert and push, which deploys once CI passes on the revert. There is no database to
+migrate, no cache to invalidate beyond the browser's, and no in-flight request to drain.
 
 One caveat with real consequences: whatever this game keeps for a player lives in
 their browser. A rollback cannot restore data a bad release destroyed, because the

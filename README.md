@@ -69,8 +69,8 @@ renders from the latest tag and prints the next steps.
   from `steven-cutting/biscuit_games_tooling` by release tag, and the hooks and recipes call
   its console scripts, so `scripts/` holds only `initialize.sh` and the browser preflight.
 - Three workflows: `ci.yml`; `chromatic.yml`, which skips the publish cleanly without a
-  `CHROMATIC_PROJECT_TOKEN`; and `pages.yml`, which publishes a project site with
-  `BASE_PATH` read from the workflow event.
+  `CHROMATIC_PROJECT_TOKEN`; and `pages.yml`, which publishes a project site once CI has
+  passed on `main`, with `BASE_PATH` read from the workflow event.
 - The platform package pinned exactly, at the version `copier.yml`'s `hub_package_version`
   names.
 - A root Allium module, `docs/specs/<slug>.allium`, stating the six platform figures;
